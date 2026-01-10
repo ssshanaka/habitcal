@@ -1,0 +1,5 @@
+{
+  "name": "HabitCal",
+  "description": "A Google Calendar-inspired habit tracker with weekly views, time-based sorting, and progress tracking.",
+  "requestFramePermissions": []
+}

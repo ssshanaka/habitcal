@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HabitCal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              gcal: {
+                bg: 'var(--gcal-bg)',
+                surface: 'var(--gcal-surface)',
+                border: 'var(--gcal-border)',
+                text: 'var(--gcal-text)',
+                muted: 'var(--gcal-muted)',
+                blue: 'var(--gcal-blue)',
+                blueHover: 'var(--gcal-blue-hover)',
+                fab: 'var(--gcal-fab)',
+                fabHover: 'var(--gcal-fab-hover)',
+                accent: '#81c995', // Green for completed
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      :root {
+        --gcal-bg: #ffffff;
+        --gcal-surface: #ffffff;
+        --gcal-border: #dadce0;
+        --gcal-text: #3c4043;
+        --gcal-muted: #70757a;
+        --gcal-blue: #1a73e8;
+        --gcal-blue-hover: #174ea6;
+        --gcal-fab: #ffffff;
+        --gcal-fab-hover: #f1f3f4;
+      }
+
+      .dark {
+        --gcal-bg: #202124;
+        --gcal-surface: #2f3136;
+        --gcal-border: #3c4043;
+        --gcal-text: #e8eaed;
+        --gcal-muted: #9aa0a6;
+        --gcal-blue: #8ab4f8;
+        --gcal-blue-hover: #aecbfa;
+        --gcal-fab: #202124;
+        --gcal-fab-hover: #2f3136;
+      }
+
+      body {
+        background-color: var(--gcal-bg);
+        color: var(--gcal-text);
+        font-family: 'Google Sans', Roboto, Arial, sans-serif;
+      }
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--gcal-bg);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--gcal-border);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--gcal-muted);
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
