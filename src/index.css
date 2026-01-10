@@ -1,0 +1,48 @@
+:root {
+  --gcal-bg: #ffffff;
+  --gcal-surface: #ffffff;
+  --gcal-border: #dadce0;
+  --gcal-text: #3c4043;
+  --gcal-muted: #70757a;
+  --gcal-blue: #1a73e8;
+  --gcal-blue-hover: #174ea6;
+  --gcal-fab: #ffffff;
+  --gcal-fab-hover: #f1f3f4;
+}
+
+.dark {
+  --gcal-bg: #202124;
+  --gcal-surface: #2f3136;
+  --gcal-border: #3c4043;
+  --gcal-text: #e8eaed;
+  --gcal-muted: #9aa0a6;
+  --gcal-blue: #8ab4f8;
+  --gcal-blue-hover: #aecbfa;
+  --gcal-fab: #202124;
+  --gcal-fab-hover: #2f3136;
+}
+
+body {
+  background-color: var(--gcal-bg);
+  color: var(--gcal-text);
+  font-family: "Google Sans", Roboto, Arial, sans-serif;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--gcal-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gcal-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gcal-muted);
+}
