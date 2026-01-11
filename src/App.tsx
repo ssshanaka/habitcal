@@ -4,7 +4,6 @@ import {
   ChevronRight, 
   Plus, 
   Settings, 
-  Search, 
   Menu, 
   Check, 
   Trash2,
@@ -14,8 +13,7 @@ import {
   User,
   Moon,
   Sun,
-  LogOut,
-  LogIn
+  LogOut
 } from 'lucide-react';
 import { 
   getWeekStart, 
@@ -26,34 +24,45 @@ import {
   generateId,
   colors
 } from './utils';
-import { Habit, Completion, SortMode } from './types';
+import { Habit, SortMode } from './types';
 import { Button } from './components/Button';
 import { Modal } from './components/Modal';
 import { Login } from './components/Login';
 import { useAuth } from './hooks/useAuth';
+import { AuthReminder } from './components/AuthReminder';
+import { habitsService } from './services/habits';
+import { syncService } from './services/sync';
 
-// --- Default Data ---
+// --- Default Data with UUID-like IDs ---
 const DEFAULT_HABITS: Habit[] = [
-  { id: '1', title: 'Morning Jog', timeStart: '07:00', timeEnd: '07:30', color: colors[0], order: 0 },
-  { id: '2', title: 'Deep Work', timeStart: '09:00', timeEnd: '11:00', color: colors[1], order: 1 },
-  { id: '3', title: 'Read Book', timeStart: '21:00', timeEnd: '21:30', color: colors[3], order: 2 },
+  { id: '11111111-1111-4111-8111-111111111111', title: 'Morning Jog', timeStart: '07:00', timeEnd: '07:30', color: colors[0], order: 0 },
+  { id: '22222222-2222-4222-8222-222222222222', title: 'Deep Work', timeStart: '09:00', timeEnd: '11:00', color: colors[1], order: 1 },
+  { id: '33333333-3333-4333-8333-333333333333', title: 'Read Book', timeStart: '21:00', timeEnd: '21:30', color: colors[3], order: 2 },
 ];
 
 function App() {
   // --- Auth ---
-  const { user, loading, signOut } = useAuth();
-
+  const { user, loading, signOut, signInWithGoogle } = useAuth();
+  
   // --- State ---
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [habits, setHabits] = useState<Habit[]>(DEFAULT_HABITS);
+  
+  // Data State
+  const [habits, setHabits] = useState<Habit[]>([]);
   const [completions, setCompletions] = useState<Record<string, boolean>>({});
+  const [dataLoaded, setDataLoaded] = useState(false);
   
   // UI State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>(SortMode.TIME);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  
+  // Reminder State
+  const [showAuthReminder, setShowAuthReminder] = useState(false);
+  const [reminderDismissed, setReminderDismissed] = useState(false);
 
   // Editing State
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
@@ -74,37 +83,122 @@ function App() {
   const today = new Date();
 
   // --- Effects ---
-  
-  // Initialize from local storage
-  useEffect(() => {
-    const savedCompletions = localStorage.getItem('habitCal_completions');
-    if (savedCompletions) setCompletions(JSON.parse(savedCompletions));
-    
-    const savedHabits = localStorage.getItem('habitCal_habits');
-    if (savedHabits) setHabits(JSON.parse(savedHabits));
 
+  // 1. Theme (Independent)
+  useEffect(() => {
     const savedTheme = localStorage.getItem('habitCal_theme') as 'light' | 'dark' | null;
     if (savedTheme) setTheme(savedTheme);
   }, []);
 
-  // Persist Data
-  useEffect(() => {
-    localStorage.setItem('habitCal_completions', JSON.stringify(completions));
-    localStorage.setItem('habitCal_habits', JSON.stringify(habits));
-    localStorage.setItem('habitCal_theme', theme);
-  }, [completions, habits, theme]);
-
-  // Apply Theme
   useEffect(() => {
     const html = document.documentElement;
-    if (theme === 'dark') {
-      html.classList.add('dark');
-    } else {
-      html.classList.remove('dark');
-    }
+    if (theme === 'dark') html.classList.add('dark');
+    else html.classList.remove('dark');
+    localStorage.setItem('habitCal_theme', theme);
   }, [theme]);
 
-  // Close dropdowns on click outside
+  // 2. Data Loading Strategy
+  useEffect(() => {
+    async function loadData() {
+      if (loading) return; // Wait for auth check
+
+      if (user) {
+        // --- User Mode: Load from Supabase ---
+        try {
+          const fetchedHabits = await habitsService.fetchHabits();
+          const fetchedCompletions = await habitsService.fetchCompletions();
+          
+          setHabits(fetchedHabits);
+          setCompletions(fetchedCompletions);
+        } catch (error) {
+          console.error('Failed to load user data', error);
+          // Fallback? Toast?
+        }
+      } else {
+        // --- Guest Mode: Load from LocalStorage ---
+        const savedHabits = localStorage.getItem('habitCal_habits');
+        const savedCompletions = localStorage.getItem('habitCal_completions');
+        
+        if (savedHabits) {
+          setHabits(JSON.parse(savedHabits));
+        } else {
+          setHabits(DEFAULT_HABITS); // Set defaults for fresh guest
+        }
+        
+        if (savedCompletions) {
+          setCompletions(JSON.parse(savedCompletions));
+        }
+      }
+      setDataLoaded(true);
+    }
+    
+    loadData();
+  }, [user, loading]);
+
+  // 3. Data Persistence Strategies
+  // A. Guest: Persist to LocalStorage on change
+  useEffect(() => {
+    if (!user && dataLoaded) {
+      localStorage.setItem('habitCal_completions', JSON.stringify(completions));
+      localStorage.setItem('habitCal_habits', JSON.stringify(habits));
+    }
+  }, [completions, habits, user, dataLoaded]);
+
+  // B. User: Sync handled in CRUD handlers, avoiding naive useEffect sync which might overwrite db with stale state
+  
+  // 4. Sync on Init (Migration)
+  useEffect(() => {
+    // If user just logged in and we have local data, we might want to sync it.
+    // However, deciding *when* to sync is tricky. Ideally right after login.
+    // simpler approach: We rely on the user manually entering "Guest Mode" data before logging in.
+    // When they log in, the 'loading' state changes.
+    // If we want to auto-sync local data to cloud on first login:
+    
+    const performSync = async () => {
+       if (user && !loading) {
+           const localHabitsRaw = localStorage.getItem('habitCal_habits');
+           const localCompletionsRaw = localStorage.getItem('habitCal_completions');
+           
+           if (localHabitsRaw) {
+               // We have local data. Let's sync it if we haven't already.
+               // How to track "already synced"? 
+               // Maybe check if DB is empty? Or just try to upsert.
+               // For simplicity in this iteration: We trigger sync if we find local data, then clear local data to avoid re-syncing.
+               
+               const localHabits = JSON.parse(localHabitsRaw);
+               const localCompletions = JSON.parse(localCompletionsRaw || '{}');
+               
+               if (localHabits.length > 0) {
+                   await syncService.syncLocalToCloud(localHabits, localCompletions);
+                   // Clear local storage to switch to "Cloud Mode" fully
+                   localStorage.removeItem('habitCal_habits');
+                   localStorage.removeItem('habitCal_completions');
+                   
+                   // Re-fetch to update UI
+                   const fetchedHabits = await habitsService.fetchHabits();
+                   const fetchedCompletions = await habitsService.fetchCompletions();
+                   setHabits(fetchedHabits);
+                   setCompletions(fetchedCompletions);
+               }
+           }
+       }
+    };
+    
+    performSync();
+  }, [user, loading]);
+
+
+  // 5. Auth Reminder Timer
+  useEffect(() => {
+    if (!user && !loading && !reminderDismissed) {
+      const timer = setTimeout(() => {
+        setShowAuthReminder(true);
+      }, 60000); // 1 minute
+      return () => clearTimeout(timer);
+    }
+  }, [user, loading, reminderDismissed]);
+
+  // 6. Click Outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
@@ -135,12 +229,28 @@ function App() {
   }, [habits, sortMode]);
 
   // --- Handlers ---
-  const toggleCompletion = (habitId: string, date: Date) => {
+  const toggleCompletion = async (habitId: string, date: Date) => {
     const key = `${habitId}_${formatDateKey(date)}`;
+    const isNowCompleted = !completions[key];
+    
+    // Optimistic Update
     setCompletions(prev => ({
       ...prev,
-      [key]: !prev[key]
+      [key]: isNowCompleted
     }));
+
+    if (user) {
+      try {
+        await habitsService.toggleCompletion(habitId, date, isNowCompleted);
+      } catch (err) {
+        // Revert on failure
+        setCompletions(prev => ({
+            ...prev,
+            [key]: !isNowCompleted
+        }));
+        console.error('Failed to toggle completion', err);
+      }
+    }
   };
 
   const isCompleted = (habitId: string, date: Date) => {
@@ -164,40 +274,74 @@ function App() {
     setCurrentDate(new Date());
   };
 
-  const handleSaveHabit = (e: React.FormEvent) => {
+  const handleSaveHabit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newHabitTitle.trim()) return;
 
+    let updatedHabits = [...habits];
+    let habitToSave: Habit;
+
     if (editingHabitId) {
       // Update existing
-      setHabits(habits.map(h => h.id === editingHabitId ? {
-        ...h,
+       const existing = habits.find(h => h.id === editingHabitId);
+       if (!existing) return;
+       
+       habitToSave = {
+        ...existing,
         title: newHabitTitle,
         timeStart: newHabitTimeStart || undefined,
         timeEnd: newHabitTimeEnd || undefined,
         color: newHabitColor,
-      } : h));
+      };
+      
+      updatedHabits = habits.map(h => h.id === editingHabitId ? habitToSave : h);
     } else {
       // Create new
-      const newHabit: Habit = {
-        id: generateId(),
+      habitToSave = {
+        id: generateId(), // UUID
         title: newHabitTitle,
         timeStart: newHabitTimeStart || undefined,
         timeEnd: newHabitTimeEnd || undefined,
         color: newHabitColor,
         order: habits.length,
       };
-      setHabits([...habits, newHabit]);
+      updatedHabits = [...habits, habitToSave];
     }
 
+    // Optimistic UI update
+    setHabits(updatedHabits);
     setIsModalOpen(false);
     resetForm();
+
+    if (user) {
+        try {
+            if (editingHabitId) {
+                await habitsService.updateHabit(habitToSave);
+            } else {
+                await habitsService.createHabit(habitToSave);
+            }
+        } catch (err) {
+            console.error('Failed to save habit', err);
+            // Could revert state here
+            // setHabits(previousHabits)
+        }
+    }
   };
 
-  const handleDeleteHabit = (id: string) => {
+  const handleDeleteHabit = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this habit?')) {
+      const prevHabits = habits;
       setHabits(habits.filter(h => h.id !== id));
       if (isModalOpen) setIsModalOpen(false);
+      
+      if (user) {
+          try {
+              await habitsService.deleteHabit(id);
+          } catch (err) {
+              console.error('Failed to delete', err);
+              setHabits(prevHabits);
+          }
+      }
     }
   };
 
@@ -227,6 +371,7 @@ function App() {
   const moveHabit = (index: number, direction: 'up' | 'down') => {
     if (sortMode === SortMode.TIME) return; 
     
+    // NOTE: Order is not currently synced to DB, only local state for session
     const newHabits = [...habits];
     
     if (direction === 'up' && index > 0) {
@@ -243,22 +388,31 @@ function App() {
   const handleSignOut = () => {
     signOut();
     setIsProfileOpen(false);
+    // State will clear on re-render due to 'user' becoming null and triggering loadData logic
+    // which falls back to local storage (or starts empty if we cleared local storage on sync).
+    // If we want to clear local view on sign out:
+    setHabits([]);
+    setCompletions({});
   }
-
-  // --- Early Returns ---
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gcal-bg text-gcal-text">
-        <div className="animate-pulse">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Login />;
+  
+  const handleLoginClick = () => {
+      setIsLoginModalOpen(true);
+      if (showAuthReminder) {
+          setReminderDismissed(true);
+          setShowAuthReminder(false);
+      }
   }
 
   // --- Render ---
+  
+  if (loading && !dataLoaded) {
+      return (
+        <div className="flex items-center justify-center h-screen bg-gcal-bg text-gcal-text">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      );
+  }
+
   return (
     <div className="flex flex-col h-screen bg-gcal-bg text-gcal-text overflow-hidden transition-colors duration-200">
       
@@ -317,19 +471,26 @@ function App() {
           </div>
 
           <div className="relative" ref={profileRef}>
-            <button 
-              onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="w-9 h-9 rounded-full bg-gcal-muted/20 hover:bg-gcal-muted/30 border border-gcal-border flex items-center justify-center text-gcal-text overflow-hidden focus:outline-none focus:ring-2 focus:ring-gcal-blue"
-            >
-              {user.user_metadata?.avatar_url ? (
-                <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <User size={20} className="text-gcal-muted" />
-              )}
-            </button>
+            
+            {user ? (
+                 <button 
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="w-9 h-9 rounded-full bg-gcal-muted/20 hover:bg-gcal-muted/30 border border-gcal-border flex items-center justify-center text-gcal-text overflow-hidden focus:outline-none focus:ring-2 focus:ring-gcal-blue"
+                >
+                  {user.user_metadata?.avatar_url ? (
+                    <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <User size={20} className="text-gcal-muted" />
+                  )}
+                </button>
+            ) : (
+                 <Button onClick={handleLoginClick} variant="primary" className="bg-gcal-blue text-white hover:bg-gcal-blueHover">
+                    Sign In
+                 </Button>
+            )}
 
             {/* Profile Dropdown */}
-            {isProfileOpen && (
+            {isProfileOpen && user && (
               <div className="absolute right-0 top-full mt-2 w-64 bg-gcal-surface border border-gcal-border rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100 p-4">
                  <div className="flex flex-col items-center gap-2 mb-4">
                     <div className="w-16 h-16 rounded-full bg-gcal-bg border border-gcal-border flex items-center justify-center overflow-hidden">
@@ -414,7 +575,7 @@ function App() {
 
           {/* Grid Body (Habits) */}
           <div className="flex-1 overflow-y-auto">
-             {sortedHabits.length === 0 ? (
+             {habits.length === 0 ? (
                <div className="flex flex-col items-center justify-center h-full text-gcal-muted">
                  <p className="text-lg">No habits yet.</p>
                  <Button variant="ghost" onClick={openCreateModal} className="text-gcal-blue mt-2">Create one</Button>
@@ -573,6 +734,21 @@ function App() {
             </div>
          </form>
       </Modal>
+
+      {/* Login Modal */}
+      <Modal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} title="Sign In">
+          <Login />
+      </Modal>
+
+      {/* Guest Mode Reminder */}
+      <AuthReminder 
+         visible={showAuthReminder}
+         onLogin={handleLoginClick}
+         onClose={() => {
+             setReminderDismissed(true);
+             setShowAuthReminder(false);
+         }} 
+      />
 
     </div>
   );

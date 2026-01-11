@@ -40,7 +40,7 @@ export const formatTime = (time?: string): string => {
   return `${displayHour}:${m} ${suffix}`;
 };
 
-export const generateId = (): string => Math.random().toString(36).substr(2, 9);
+export const generateId = (): string => self.crypto.randomUUID();
 
 export const colors = [
   '#8ab4f8', // Blue

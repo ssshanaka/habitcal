@@ -1,11 +1,13 @@
 export interface Habit {
   id: string;
+  user_id?: string;
   title: string;
   description?: string;
   timeStart?: string; // HH:mm format
   timeEnd?: string; // HH:mm format
   color: string;
   order: number;
+  created_at?: string;
 }
 
 export interface Completion {

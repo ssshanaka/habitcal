@@ -6,8 +6,8 @@ export function Login() {
   const { signInWithGoogle } = useAuth();
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gcal-bg p-4 text-gcal-text">
-        <div className="w-full max-w-md p-8 space-y-8 bg-gcal-surface rounded-2xl border border-gcal-border shadow-xl">
+    <div className="flex flex-col items-center justify-center p-4 text-gcal-text w-full">
+        <div className="w-full max-w-md space-y-8">
             <div className="text-center">
                 <h1 className="text-3xl font-bold tracking-tight">HabitCal</h1>
                 <p className="mt-2 text-gcal-muted">Sign in to sync your habits across devices</p>
