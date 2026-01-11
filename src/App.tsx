@@ -29,6 +29,8 @@ import {
 import { Habit, Completion, SortMode } from './types';
 import { Button } from './components/Button';
 import { Modal } from './components/Modal';
+import { Login } from './components/Login';
+import { useAuth } from './hooks/useAuth';
 
 // --- Default Data ---
 const DEFAULT_HABITS: Habit[] = [
@@ -38,6 +40,9 @@ const DEFAULT_HABITS: Habit[] = [
 ];
 
 function App() {
+  // --- Auth ---
+  const { user, loading, signOut } = useAuth();
+
   // --- State ---
   const [currentDate, setCurrentDate] = useState(new Date());
   const [habits, setHabits] = useState<Habit[]>(DEFAULT_HABITS);
@@ -235,6 +240,24 @@ function App() {
     }
   };
 
+  const handleSignOut = () => {
+    signOut();
+    setIsProfileOpen(false);
+  }
+
+  // --- Early Returns ---
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gcal-bg text-gcal-text">
+        <div className="animate-pulse">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
+
   // --- Render ---
   return (
     <div className="flex flex-col h-screen bg-gcal-bg text-gcal-text overflow-hidden transition-colors duration-200">
@@ -298,27 +321,34 @@ function App() {
               onClick={() => setIsProfileOpen(!isProfileOpen)}
               className="w-9 h-9 rounded-full bg-gcal-muted/20 hover:bg-gcal-muted/30 border border-gcal-border flex items-center justify-center text-gcal-text overflow-hidden focus:outline-none focus:ring-2 focus:ring-gcal-blue"
             >
-              <User size={20} className="text-gcal-muted" />
+              {user.user_metadata?.avatar_url ? (
+                <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <User size={20} className="text-gcal-muted" />
+              )}
             </button>
 
             {/* Profile Dropdown */}
             {isProfileOpen && (
               <div className="absolute right-0 top-full mt-2 w-64 bg-gcal-surface border border-gcal-border rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100 p-4">
                  <div className="flex flex-col items-center gap-2 mb-4">
-                    <div className="w-16 h-16 rounded-full bg-gcal-bg border border-gcal-border flex items-center justify-center">
-                       <User size={32} className="text-gcal-muted" />
+                    <div className="w-16 h-16 rounded-full bg-gcal-bg border border-gcal-border flex items-center justify-center overflow-hidden">
+                       {user.user_metadata?.avatar_url ? (
+                          <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          <User size={32} className="text-gcal-muted" />
+                        )}
                     </div>
-                    <div className="text-center">
-                      <p className="font-medium text-gcal-text">Guest User</p>
-                      <p className="text-xs text-gcal-muted">guest@habitcal.app</p>
+                    <div className="text-center overflow-hidden w-full">
+                      <p className="font-medium text-gcal-text truncate">{user.user_metadata?.full_name || 'User'}</p>
+                      <p className="text-xs text-gcal-muted truncate">{user.email}</p>
                     </div>
                  </div>
-                 <Button className="w-full justify-center gap-2" variant="secondary" onClick={() => alert("Login functionality would go here!")}>
-                    <LogIn size={16} /> Log In
+                 
+                 <Button className="w-full justify-center gap-2 text-red-400 hover:text-red-500 hover:bg-red-500/10" variant="ghost" onClick={handleSignOut}>
+                    <LogOut size={16} /> Sign Out
                  </Button>
-                 <div className="mt-4 pt-3 border-t border-gcal-border text-center">
-                    <span className="text-xs text-gcal-muted">Privacy Policy • Terms</span>
-                 </div>
+                 
               </div>
             )}
           </div>
