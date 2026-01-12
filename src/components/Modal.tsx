@@ -14,17 +14,32 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
-    if (isOpen) window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
+    if (isOpen) {
+      window.addEventListener('keydown', handleEsc);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      window.removeEventListener('keydown', handleEsc);
+      document.body.style.overflow = 'unset';
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-      <div className="bg-gcal-surface w-full max-w-md rounded-xl shadow-2xl border border-gcal-border p-6 relative animate-in fade-in zoom-in duration-200">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-google text-gcal-text">{title}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md"></div>
+      <div 
+        className="glassmorphism w-full max-w-md rounded-3xl shadow-xl border border-gcal-border p-6 relative animate-scale z-10"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'var(--glass-bg)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        }}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gcal-text">{title}</h2>
           <Button variant="icon" onClick={onClose} aria-label="Close">
             <X size={20} />
           </Button>

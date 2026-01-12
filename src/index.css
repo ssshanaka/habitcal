@@ -1,48 +1,238 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 :root {
-  --gcal-bg: #ffffff;
-  --gcal-surface: #ffffff;
-  --gcal-border: #dadce0;
-  --gcal-text: #3c4043;
-  --gcal-muted: #70757a;
-  --gcal-blue: #1a73e8;
-  --gcal-blue-hover: #174ea6;
-  --gcal-fab: #ffffff;
-  --gcal-fab-hover: #f1f3f4;
+  /* Vibrant Light Mode Colors */
+  --gcal-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gcal-bg-solid: #f8f9ff;
+  --gcal-surface: rgba(255, 255, 255, 0.85);
+  --gcal-surface-solid: #ffffff;
+  --gcal-border: rgba(102, 126, 234, 0.2);
+  --gcal-text: #1a1a2e;
+  --gcal-muted: #6b7280;
+  --gcal-blue: #667eea;
+  --gcal-blue-hover: #5568d3;
+  --gcal-fab: rgba(255, 255, 255, 0.9);
+  --gcal-fab-hover: rgba(255, 255, 255, 1);
+  
+  /* Gradient Accents */
+  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --gradient-success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --gradient-warm: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  
+  /* Glassmorphism */
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-popup: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(102, 126, 234, 0.1);
+  --shadow-md: 0 4px 16px rgba(102, 126, 234, 0.15);
+  --shadow-lg: 0 8px 32px rgba(102, 126, 234, 0.2);
+  --shadow-xl: 0 12px 48px rgba(102, 126, 234, 0.25);
 }
 
 .dark {
-  --gcal-bg: #202124;
-  --gcal-surface: #2f3136;
-  --gcal-border: #3c4043;
-  --gcal-text: #e8eaed;
-  --gcal-muted: #9aa0a6;
-  --gcal-blue: #8ab4f8;
-  --gcal-blue-hover: #aecbfa;
-  --gcal-fab: #202124;
-  --gcal-fab-hover: #2f3136;
+  /* Vibrant Dark Mode Colors */
+  --gcal-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  --gcal-bg-solid: #0f0f1e;
+  --gcal-surface: rgba(31, 31, 46, 0.85);
+  --gcal-surface-solid: #1f1f2e;
+  --gcal-border: rgba(139, 92, 246, 0.3);
+  --gcal-text: #f1f5f9;
+  --gcal-muted: #94a3b8;
+  --gcal-blue: #a78bfa;
+  --gcal-blue-hover: #c4b5fd;
+  --gcal-fab: rgba(31, 31, 46, 0.9);
+  --gcal-fab-hover: rgba(31, 31, 46, 1);
+  
+  /* Gradient Accents */
+  --gradient-primary: linear-gradient(135deg, #a78bfa 0%, #ec4899 100%);
+  --gradient-secondary: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+  --gradient-success: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  --gradient-warm: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+  
+  /* Glassmorphism */
+  --glass-bg: rgba(31, 31, 46, 0.85);
+  --glass-popup: rgba(31, 31, 46, 0.95);
+  --glass-border: rgba(139, 92, 246, 0.2);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  background-color: var(--gcal-bg);
+  background: var(--gcal-bg-solid);
   color: var(--gcal-text);
-  font-family: "Google Sans", Roboto, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 400;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--gcal-blue), 0 0 10px var(--gcal-blue);
+  }
+  50% {
+    box-shadow: 0 0 10px var(--gcal-blue), 0 0 20px var(--gcal-blue), 0 0 30px var(--gcal-blue);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Utility Classes */
+.glassmorphism {
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.gradient-bg {
+  background: var(--gradient-primary);
+}
+
+.gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.animate-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideInUp 0.3s ease-out;
+}
+
+.animate-slide-down {
+  animation: slideInDown 0.3s ease-out;
+}
+
+.animate-scale {
+  animation: scaleIn 0.2s ease-out;
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--gcal-bg);
+  background: var(--gcal-bg-solid);
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--gcal-border);
-  border-radius: 4px;
+  background: var(--gradient-primary);
+  border-radius: 10px;
+  border: 2px solid var(--gcal-bg-solid);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--gcal-muted);
+  background: var(--gradient-secondary);
+}
+
+/* Smooth Transitions */
+* {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+/* Selection */
+::selection {
+  background: var(--gcal-blue);
+  color: white;
+}
+
+::-moz-selection {
+  background: var(--gcal-blue);
+  color: white;
+}
+
+/* Focus Styles */
+*:focus-visible {
+  outline: 2px solid var(--gcal-blue);
+  outline-offset: 2px;
+}
+
+/* Disabled Elements */
+*:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
