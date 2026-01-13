@@ -622,22 +622,28 @@ function App() {
                       className="w-48 md:w-64 flex-shrink-0 border-r border-gcal-border p-4 flex flex-col justify-center relative group/habit cursor-pointer hover:bg-gcal-surface/50 transition-all duration-200"
                       onClick={() => openEditModal(habit)}
                     >
-                       <div className="flex items-center justify-between mb-1">
-                          <span className="font-bold truncate pr-2 text-lg" style={{ color: habit.color }}>{habit.title}</span>
-                          {sortMode === SortMode.MANUAL && (
-                            <div className="flex flex-col opacity-0 group-hover/habit:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                              <button onClick={() => moveHabit(index, 'up')} disabled={index === 0} className="hover:text-gcal-text text-gcal-muted disabled:opacity-30 p-1"><ArrowUp size={12} /></button>
-                              <button onClick={() => moveHabit(index, 'down')} disabled={index === habits.length - 1} className="hover:text-gcal-text text-gcal-muted disabled:opacity-30 p-1"><ArrowDown size={12} /></button>
+                       <div className="pr-8">
+                          <div className="flex items-center justify-between mb-1">
+                             <span className="font-bold truncate text-lg" style={{ color: habit.color }}>{habit.title}</span>
+                          </div>
+                          
+                          {(habit.timeStart || habit.timeEnd) && (
+                            <div className="text-xs text-gcal-muted flex items-center gap-1">
+                              <Clock size={10} />
+                              {formatTime(habit.timeStart)} {habit.timeEnd && `- ${formatTime(habit.timeEnd)}`}
                             </div>
                           )}
                        </div>
-                       
-                       {(habit.timeStart || habit.timeEnd) && (
-                         <div className="text-xs text-gcal-muted flex items-center gap-1">
-                           <Clock size={10} />
-                           {formatTime(habit.timeStart)} {habit.timeEnd && `- ${formatTime(habit.timeEnd)}`}
-                         </div>
-                       )}
+
+                       <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                          {sortMode === SortMode.MANUAL && (
+                            <>
+                              <button onClick={() => moveHabit(index, 'up')} disabled={index === 0} className="hover:text-gcal-text text-gcal-muted disabled:opacity-30 p-1"><ArrowUp size={12} /></button>
+                              <button onClick={() => moveHabit(index, 'down')} disabled={index === habits.length - 1} className="hover:text-gcal-text text-gcal-muted disabled:opacity-30 p-1"><ArrowDown size={12} /></button>
+                            </>
+                          )}
+                          <button onClick={() => handleDeleteHabit(habit.id)} className="hover:text-red-400 text-gcal-muted p-1" title="Delete"><Trash2 size={12} /></button>
+                       </div>
                     </div>
 
                     {/* Checkbox Columns */}
@@ -671,7 +677,7 @@ function App() {
                                  }}
                                >
                                  {completed && (
-                                   <Check size={24} style={{ color: habit.color }} strokeWidth={3} className="animate-in" />
+                                   <Check size={24} style={{ color: 'var(--gcal-bg-solid)' }} strokeWidth={3} className="animate-in" />
                                  )}
                                </div>
                              </label>
