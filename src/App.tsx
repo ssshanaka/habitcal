@@ -494,7 +494,7 @@ function App() {
 
             {/* Profile Dropdown */}
             {isProfileOpen && (
-              <div className="absolute right-0 top-full mt-3 w-72 glassmorphism rounded-3xl shadow-2xl z-50 overflow-hidden animate-scale p-5" style={{
+              <div className="absolute right-0 top-full mt-3 w-80 glassmorphism rounded-3xl shadow-2xl z-50 overflow-hidden animate-scale p-6" style={{
                 background: 'var(--glass-popup)',
                 backdropFilter: 'blur(30px)',
                 WebkitBackdropFilter: 'blur(30px)',

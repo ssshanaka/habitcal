@@ -33,6 +33,20 @@ export function useAuth() {
     })
   }
 
+  const signInWithEmail = async (email: string, password: string) => {
+    return await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+  }
+
+  const signUpWithEmail = async (email: string, password: string) => {
+    return await supabase.auth.signUp({
+      email,
+      password,
+    })
+  }
+
   const signOut = async () => {
     await supabase.auth.signOut()
   }
@@ -42,6 +56,8 @@ export function useAuth() {
     session,
     loading,
     signInWithGoogle,
+    signInWithEmail,
+    signUpWithEmail,
     signOut,
   }
 }

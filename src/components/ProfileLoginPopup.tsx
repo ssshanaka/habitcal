@@ -1,5 +1,5 @@
-import React from 'react';
-import { LogIn, Mail } from 'lucide-react';
+import React, { useState } from 'react';
+import { LogIn, Mail, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from './Button';
 
@@ -8,30 +8,154 @@ interface ProfileLoginPopupProps {
 }
 
 export const ProfileLoginPopup: React.FC<ProfileLoginPopupProps> = ({ onClose }) => {
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
     await signInWithGoogle();
     onClose();
   };
 
-  return (
-    <div className="w-72">
-      <div className="text-center mb-6">
-        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br from-gcal-blue to-purple-500 flex items-center justify-center">
-          <LogIn size={32} className="text-white" />
+  const validatePassword = (pwd: string): string | null => {
+    if (pwd.length < 8) return 'Password must be at least 8 characters';
+    if (!/[a-z]/.test(pwd)) return 'Password must contain lowercase letters';
+    if (!/[A-Z]/.test(pwd)) return 'Password must contain uppercase letters';
+    if (!/[0-9]/.test(pwd)) return 'Password must contain digits';
+    if (!/[^a-zA-Z0-9]/.test(pwd)) return 'Password must contain symbols';
+    return null;
+  };
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      if (isSignUp) {
+        const passwordError = validatePassword(password);
+        if (passwordError) {
+          setError(passwordError);
+          setLoading(false);
+          return;
+        }
+        const { error } = await signUpWithEmail(email, password);
+        if (error) throw error;
+        setError('Check your email to confirm your account!');
+      } else {
+        const { error } = await signInWithEmail(email, password);
+        if (error) throw error;
+        onClose();
+      }
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (showEmailForm) {
+    return (
+      <div className="w-full">
+        <div className="text-center mb-5">
+          <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gradient-to-br from-gcal-blue to-purple-500 flex items-center justify-center">
+            <Mail size={28} className="text-white" />
+          </div>
+          <h3 className="text-lg font-bold text-gcal-text mb-1">
+            {isSignUp ? 'Create Account' : 'Sign In'}
+          </h3>
+          <p className="text-xs text-gcal-muted">
+            {isSignUp ? 'Join HabitCal today' : 'Welcome back!'}
+          </p>
         </div>
-        <h3 className="text-xl font-bold text-gcal-text mb-1">Welcome Back!</h3>
-        <p className="text-sm text-gcal-muted">Sign in to sync your habits</p>
+
+        <form onSubmit={handleEmailSubmit} className="space-y-3">
+          <div>
+            <input
+              type="email"
+              placeholder="Email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-2.5 bg-gcal-surface-solid border border-gcal-border rounded-xl text-gcal-text placeholder:text-gcal-muted focus:outline-none focus:ring-2 focus:ring-gcal-blue transition-all text-sm"
+              required
+            />
+          </div>
+          
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-2.5 bg-gcal-surface-solid border border-gcal-border rounded-xl text-gcal-text placeholder:text-gcal-muted focus:outline-none focus:ring-2 focus:ring-gcal-blue transition-all text-sm pr-10"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gcal-muted hover:text-gcal-text transition-colors"
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+
+          {error && (
+            <p className={`text-xs ${error.includes('Check your email') ? 'text-green-500' : 'text-red-500'}`}>
+              {error}
+            </p>
+          )}
+
+          <Button
+            type="submit"
+            variant="gradient"
+            className="w-full justify-center shadow-lg text-sm py-2.5"
+            disabled={loading}
+          >
+            {loading ? 'Please wait...' : isSignUp ? 'Sign Up' : 'Sign In'}
+          </Button>
+
+          <button
+            type="button"
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="w-full text-xs text-gcal-muted hover:text-gcal-blue transition-colors"
+          >
+            {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowEmailForm(false)}
+            className="w-full text-xs text-gcal-muted hover:text-gcal-text transition-colors"
+          >
+            ← Back to login options
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full">
+      <div className="text-center mb-5">
+        <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gradient-to-br from-gcal-blue to-purple-500 flex items-center justify-center">
+          <LogIn size={28} className="text-white" />
+        </div>
+        <h3 className="text-lg font-bold text-gcal-text mb-1">Welcome Back!</h3>
+        <p className="text-xs text-gcal-muted">Sign in to sync your habits</p>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {/* Google Login */}
         <button
           onClick={handleGoogleLogin}
-          className="flex items-center justify-center w-full px-4 py-3 gap-3 transition-all duration-200 bg-gcal-surface-solid border border-gcal-border rounded-2xl text-gcal-text hover:shadow-lg hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-gcal-blue"
+          className="flex items-center justify-center w-full px-4 py-2.5 gap-2.5 transition-all duration-200 bg-gcal-surface-solid border border-gcal-border rounded-xl text-gcal-text hover:shadow-lg hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-gcal-blue text-sm"
         >
-          <svg className="w-5 h-5" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" viewBox="0 0 24 24">
             <path
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
               fill="#4285F4"
@@ -52,18 +176,17 @@ export const ProfileLoginPopup: React.FC<ProfileLoginPopupProps> = ({ onClose })
           <span className="font-medium">Continue with Google</span>
         </button>
 
-        {/* Email Login - Placeholder for future implementation */}
+        {/* Email Login */}
         <button
-          disabled
-          className="flex items-center justify-center w-full px-4 py-3 gap-3 transition-all duration-200 bg-gcal-surface/50 border border-gcal-border rounded-2xl text-gcal-muted cursor-not-allowed opacity-50"
-          title="Email login coming soon"
+          onClick={() => setShowEmailForm(true)}
+          className="flex items-center justify-center w-full px-4 py-2.5 gap-2.5 transition-all duration-200 bg-gcal-surface-solid border border-gcal-border rounded-xl text-gcal-text hover:shadow-lg hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-gcal-blue text-sm"
         >
-          <Mail size={20} />
+          <Mail size={18} />
           <span className="font-medium">Continue with Email</span>
         </button>
       </div>
 
-      <div className="mt-6 pt-4 border-t border-gcal-border">
+      <div className="mt-4 pt-3 border-t border-gcal-border">
         <p className="text-xs text-center text-gcal-muted">
           Secure authentication powered by Supabase
         </p>
