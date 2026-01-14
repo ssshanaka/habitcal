@@ -22,7 +22,8 @@ import {
   isSameDay, 
   formatTime,
   generateId,
-  colors
+  colors,
+  calculateStreak
 } from './utils';
 import { Habit, SortMode } from './types';
 import { Button } from './components/Button';
@@ -52,6 +53,15 @@ function App() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [completions, setCompletions] = useState<Record<string, boolean>>({});
   const [dataLoaded, setDataLoaded] = useState(false);
+  
+  // Streak State - Calculated from completions
+  const streaks = useMemo(() => {
+    const streakMap: Record<string, number> = {};
+    habits.forEach(habit => {
+      streakMap[habit.id] = calculateStreak(habit.id, completions);
+    });
+    return streakMap;
+  }, [habits, completions]);
   
   // UI State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -631,6 +641,16 @@ function App() {
                             <div className="text-xs text-gcal-muted flex items-center gap-1">
                               <Clock size={10} />
                               {formatTime(habit.timeStart)} {habit.timeEnd && `- ${formatTime(habit.timeEnd)}`}
+                            </div>
+                          )}
+                          
+                          {/* Streak Counter */}
+                          {streaks[habit.id] > 0 && (
+                            <div className="flex items-center gap-1 text-sm mt-1">
+                              <span className="text-base">🔥</span>
+                              <span className="font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
+                                {streaks[habit.id]} day{streaks[habit.id] !== 1 ? 's' : ''}
+                              </span>
                             </div>
                           )}
                        </div>

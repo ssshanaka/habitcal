@@ -51,3 +51,45 @@ export const colors = [
   '#f6bfbc', // Pink
   '#e8eaed', // Grey
 ];
+
+// --- Streak Calculation Utilities ---
+
+/**
+ * Get the previous day from a given date
+ */
+export const getPreviousDay = (date: Date): Date => {
+  const d = new Date(date);
+  d.setDate(d.getDate() - 1);
+  return d;
+};
+
+/**
+ * Calculate the current streak for a habit
+ * Loops from today backwards counting consecutive completed days
+ * @param habitId - The ID of the habit to calculate streak for
+ * @param completions - Record of completions (key format: "habitId_YYYY-MM-DD")
+ * @returns Number of consecutive days with completions
+ */
+export const calculateStreak = (
+  habitId: string,
+  completions: Record<string, boolean>
+): number => {
+  let streak = 0;
+  let currentDate = new Date();
+  const maxDaysToCheck = 365; // Prevent infinite loops
+  
+  for (let i = 0; i < maxDaysToCheck; i++) {
+    const dateKey = formatDateKey(currentDate);
+    const completionKey = `${habitId}_${dateKey}`;
+    
+    if (completions[completionKey]) {
+      streak++;
+      currentDate = getPreviousDay(currentDate);
+    } else {
+      // Hit a missing day, stop counting
+      break;
+    }
+  }
+  
+  return streak;
+};
