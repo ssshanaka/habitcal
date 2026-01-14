@@ -32,6 +32,7 @@ import { Login } from './components/Login';
 import { useAuth } from './hooks/useAuth';
 import { AuthReminder } from './components/AuthReminder';
 import { ProfileLoginPopup } from './components/ProfileLoginPopup';
+import { HeatmapCalendar } from './components/HeatmapCalendar';
 import { habitsService } from './services/habits';
 import { syncService } from './services/sync';
 
@@ -62,6 +63,22 @@ function App() {
     });
     return streakMap;
   }, [habits, completions]);
+  
+  // Heatmap Data - Count completions per day
+  const heatmapData = useMemo(() => {
+    const heatmap: Record<string, number> = {};
+    Object.keys(completions).forEach(key => {
+      // key format: "habitId_YYYY-MM-DD"
+      const parts = key.split('_');
+      if (parts.length >= 2) {
+        const dateStr = parts.slice(1).join('_'); // Handle edge case of multiple underscores
+        if (completions[key]) {
+          heatmap[dateStr] = (heatmap[dateStr] || 0) + 1;
+        }
+      }
+    });
+    return heatmap;
+  }, [completions]);
   
   // UI State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -574,6 +591,12 @@ function App() {
                  <option value={SortMode.MANUAL}>Manual</option>
                </select>
             </div>
+          </div>
+
+          {/* Heatmap Calendar */}
+          <div className="mt-auto pt-6">
+            <h3 className="text-xs font-bold text-gcal-muted uppercase tracking-wider mb-3">Activity</h3>
+            <HeatmapCalendar heatmapData={heatmapData} />
           </div>
         </aside>
 
