@@ -13,7 +13,10 @@ import {
   User,
   Moon,
   Sun,
-  LogOut
+  LogOut,
+  Target,
+  Sparkles,
+  BarChart3
 } from 'lucide-react';
 import { 
   getWeekStart, 
@@ -84,6 +87,7 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>(SortMode.TIME);
+  const [todayFocusOnly, setTodayFocusOnly] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -97,6 +101,7 @@ function App() {
   
   // Form State
   const [newHabitTitle, setNewHabitTitle] = useState('');
+  const [newHabitDescription, setNewHabitDescription] = useState('');
   const [newHabitTimeStart, setNewHabitTimeStart] = useState('');
   const [newHabitTimeEnd, setNewHabitTimeEnd] = useState('');
   const [newHabitColor, setNewHabitColor] = useState(colors[0]);
@@ -109,6 +114,39 @@ function App() {
   const weekStart = getWeekStart(currentDate);
   const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart]);
   const today = new Date();
+  const todayKey = formatDateKey(today);
+
+  const completionStats = useMemo(() => {
+    if (habits.length === 0) {
+      return { todayCompleted: 0, todayTotal: 0, weeklyCompleted: 0, weeklyTotal: 0, bestStreak: 0 };
+    }
+
+    const todayCompleted = habits.filter(h => completions[`${h.id}_${todayKey}`]).length;
+    const weeklyCompleted = habits.reduce((acc, habit) => {
+      const habitCount = weekDays.reduce((dayAcc, day) => {
+        const key = `${habit.id}_${formatDateKey(day)}`;
+        return dayAcc + (completions[key] ? 1 : 0);
+      }, 0);
+      return acc + habitCount;
+    }, 0);
+
+    const bestStreak = habits.reduce((max, habit) => Math.max(max, streaks[habit.id] || 0), 0);
+
+    return {
+      todayCompleted,
+      todayTotal: habits.length,
+      weeklyCompleted,
+      weeklyTotal: habits.length * weekDays.length,
+      bestStreak
+    };
+  }, [habits, completions, todayKey, weekDays, streaks]);
+
+  const todayProgressPercent = completionStats.todayTotal
+    ? Math.round((completionStats.todayCompleted / completionStats.todayTotal) * 100)
+    : 0;
+  const weeklyProgressPercent = completionStats.weeklyTotal
+    ? Math.round((completionStats.weeklyCompleted / completionStats.weeklyTotal) * 100)
+    : 0;
 
   // --- Effects ---
 
@@ -256,6 +294,11 @@ function App() {
     }
   }, [habits, sortMode]);
 
+  const visibleHabits = useMemo(() => {
+    if (!todayFocusOnly) return sortedHabits;
+    return sortedHabits.filter(habit => !completions[`${habit.id}_${todayKey}`]);
+  }, [sortedHabits, todayFocusOnly, completions, todayKey]);
+
   // --- Handlers ---
   const toggleCompletion = async (habitId: string, date: Date) => {
     const key = `${habitId}_${formatDateKey(date)}`;
@@ -302,6 +345,28 @@ function App() {
     setCurrentDate(new Date());
   };
 
+  const setTodayForAllHabits = async (completed: boolean) => {
+    const todayDate = new Date();
+    const updates: Record<string, boolean> = {};
+    habits.forEach(habit => {
+      updates[`${habit.id}_${todayKey}`] = completed;
+    });
+
+    const prevCompletions = completions;
+    setCompletions(prev => ({ ...prev, ...updates }));
+
+    if (user) {
+      try {
+        await Promise.all(
+          habits.map(habit => habitsService.toggleCompletion(habit.id, todayDate, completed))
+        );
+      } catch (error) {
+        console.error('Failed to bulk update today completions', error);
+        setCompletions(prevCompletions);
+      }
+    }
+  };
+
   const handleSaveHabit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newHabitTitle.trim()) return;
@@ -317,6 +382,7 @@ function App() {
        habitToSave = {
         ...existing,
         title: newHabitTitle,
+        description: newHabitDescription || undefined,
         timeStart: newHabitTimeStart || undefined,
         timeEnd: newHabitTimeEnd || undefined,
         color: newHabitColor,
@@ -328,6 +394,7 @@ function App() {
       habitToSave = {
         id: generateId(), // UUID
         title: newHabitTitle,
+        description: newHabitDescription || undefined,
         timeStart: newHabitTimeStart || undefined,
         timeEnd: newHabitTimeEnd || undefined,
         color: newHabitColor,
@@ -382,6 +449,7 @@ function App() {
   const openEditModal = (habit: Habit) => {
     setEditingHabitId(habit.id);
     setNewHabitTitle(habit.title);
+    setNewHabitDescription(habit.description || '');
     setNewHabitTimeStart(habit.timeStart || '');
     setNewHabitTimeEnd(habit.timeEnd || '');
     setNewHabitColor(habit.color);
@@ -390,6 +458,7 @@ function App() {
 
   const resetForm = () => {
     setNewHabitTitle('');
+    setNewHabitDescription('');
     setNewHabitTimeStart('');
     setNewHabitTimeEnd('');
     setNewHabitColor(colors[0]);
@@ -591,6 +660,56 @@ function App() {
                  <option value={SortMode.MANUAL}>Manual</option>
                </select>
             </div>
+            <button
+              onClick={() => setTodayFocusOnly(prev => !prev)}
+              className={`w-full text-left flex items-center justify-between gap-2 glassmorphism p-3 rounded-2xl transition-all hover:shadow-md text-sm ${
+                todayFocusOnly ? 'ring-1 ring-gcal-blue' : ''
+              }`}
+              style={{
+                background: 'var(--glass-bg)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+              }}
+            >
+              <span className="flex items-center gap-2 font-medium">
+                <Target size={14} />
+                Focus on today
+              </span>
+              <span className="text-gcal-muted">{todayFocusOnly ? 'On' : 'Off'}</span>
+            </button>
+          </div>
+
+          <div className="glassmorphism rounded-2xl p-4 space-y-3" style={{
+            background: 'var(--glass-bg)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+          }}>
+            <h3 className="text-xs font-bold text-gcal-muted uppercase tracking-wider">Momentum</h3>
+            <div>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="flex items-center gap-1"><Sparkles size={12} /> Today</span>
+                <span className="font-bold">{completionStats.todayCompleted}/{completionStats.todayTotal}</span>
+              </div>
+              <div className="w-full h-2 rounded-full bg-gcal-surface/40 overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-gcal-blue to-purple-500" style={{ width: `${todayProgressPercent}%` }} />
+              </div>
+            </div>
+            <div className="text-xs flex items-center justify-between">
+              <span className="flex items-center gap-1"><BarChart3 size={12} /> Week rate</span>
+              <span className="font-bold">{weeklyProgressPercent}%</span>
+            </div>
+            <div className="text-xs flex items-center justify-between">
+              <span>Best streak</span>
+              <span className="font-bold">{completionStats.bestStreak} day{completionStats.bestStreak === 1 ? '' : 's'}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <Button variant="secondary" className="text-xs px-2 py-2" onClick={() => setTodayForAllHabits(true)}>
+                Complete today
+              </Button>
+              <Button variant="ghost" className="text-xs px-2 py-2" onClick={() => setTodayForAllHabits(false)}>
+                Reset today
+              </Button>
+            </div>
           </div>
 
           {/* Heatmap Calendar */}
@@ -646,8 +765,14 @@ function App() {
                  <p className="text-xl font-medium mb-2">No habits yet.</p>
                  <Button variant="gradient" onClick={openCreateModal} className="mt-2 shadow-lg">Create your first habit</Button>
                </div>
+             ) : visibleHabits.length === 0 ? (
+               <div className="flex flex-col items-center justify-center h-full text-gcal-muted py-20 px-6 text-center">
+                 <Target size={42} className="mb-3" />
+                 <p className="text-lg font-semibold">Everything for today is complete 🎉</p>
+                 <p className="text-sm mt-1">Turn off &quot;Focus on today&quot; to see all habits.</p>
+               </div>
              ) : (
-               sortedHabits.map((habit, index) => (
+               visibleHabits.map((habit, index) => (
                  <div key={habit.id} className="flex border-b border-gcal-border hover:bg-gcal-surface/50 group transition-all duration-200 min-h-[90px] hover:shadow-md">
                     
                     {/* Habit Info Column */}
@@ -666,6 +791,9 @@ function App() {
                               {formatTime(habit.timeStart)} {habit.timeEnd && `- ${formatTime(habit.timeEnd)}`}
                             </div>
                           )}
+                          {habit.description && (
+                            <p className="text-xs text-gcal-muted mt-1">{habit.description}</p>
+                          )}
                           
                           {/* Streak Counter */}
                           {streaks[habit.id] > 0 && (
@@ -679,10 +807,10 @@ function App() {
                        </div>
 
                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                          {sortMode === SortMode.MANUAL && (
+                          {sortMode === SortMode.MANUAL && !todayFocusOnly && (
                             <>
                               <button onClick={() => moveHabit(index, 'up')} disabled={index === 0} className="hover:text-gcal-text text-gcal-muted disabled:opacity-30 p-1"><ArrowUp size={12} /></button>
-                              <button onClick={() => moveHabit(index, 'down')} disabled={index === habits.length - 1} className="hover:text-gcal-text text-gcal-muted disabled:opacity-30 p-1"><ArrowDown size={12} /></button>
+                              <button onClick={() => moveHabit(index, 'down')} disabled={index === visibleHabits.length - 1} className="hover:text-gcal-text text-gcal-muted disabled:opacity-30 p-1"><ArrowDown size={12} /></button>
                             </>
                           )}
                           <button onClick={() => handleDeleteHabit(habit.id)} className="hover:text-red-400 text-gcal-muted p-1" title="Delete"><Trash2 size={12} /></button>
@@ -765,6 +893,17 @@ function App() {
                 style={{
                   borderImage: newHabitTitle ? 'linear-gradient(to right, var(--gcal-blue), #a855f7) 1' : undefined
                 }}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gcal-muted mb-2 uppercase tracking-wider">Description (optional)</label>
+              <textarea
+                rows={3}
+                placeholder="What does success look like for this habit?"
+                className="w-full bg-transparent border border-gcal-border focus:border-gcal-blue rounded-xl px-3 py-2 outline-none text-sm text-gcal-text transition-all duration-200 placeholder:text-gcal-muted/60 resize-none"
+                value={newHabitDescription}
+                onChange={e => setNewHabitDescription(e.target.value)}
               />
             </div>
 
