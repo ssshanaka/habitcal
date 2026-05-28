@@ -26,6 +26,7 @@ import {
   formatTime,
   generateId,
   colors,
+  categories,
   calculateStreak
 } from './utils';
 import { Habit, SortMode } from './types';
@@ -107,6 +108,7 @@ function App() {
   const [newHabitTimeStart, setNewHabitTimeStart] = useState('');
   const [newHabitTimeEnd, setNewHabitTimeEnd] = useState('');
   const [newHabitColor, setNewHabitColor] = useState(colors[0]);
+  const [newHabitCategory, setNewHabitCategory] = useState(categories[0]);
 
   // Refs for click outside
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -253,6 +255,7 @@ function App() {
         timeStart: newHabitTimeStart || undefined,
         timeEnd: newHabitTimeEnd || undefined,
         color: newHabitColor,
+        category: newHabitCategory,
       };
     } else {
       habitToSave = {
@@ -262,6 +265,7 @@ function App() {
         timeStart: newHabitTimeStart || undefined,
         timeEnd: newHabitTimeEnd || undefined,
         color: newHabitColor,
+        category: newHabitCategory,
         order: habits.length,
       };
     }
@@ -291,6 +295,7 @@ function App() {
     setNewHabitTimeStart(habit.timeStart || '');
     setNewHabitTimeEnd(habit.timeEnd || '');
     setNewHabitColor(habit.color);
+    setNewHabitCategory(habit.category || categories[0]);
     setIsModalOpen(true);
   };
 
@@ -300,6 +305,7 @@ function App() {
     setNewHabitTimeStart('');
     setNewHabitTimeEnd('');
     setNewHabitColor(colors[0]);
+    setNewHabitCategory(categories[0]);
     setEditingHabitId(null);
   };
 
@@ -598,7 +604,14 @@ function App() {
                     >
                        <div className="pr-8">
                           <div className="flex items-center justify-between mb-1">
-                             <span className="font-bold truncate text-lg" style={{ color: habit.color }}>{habit.title}</span>
+                             <div className="flex flex-col">
+                               <span className="font-bold truncate text-lg" style={{ color: habit.color }}>{habit.title}</span>
+                               {habit.category && (
+                                 <span className="text-[10px] font-bold uppercase tracking-wider text-gcal-muted px-1.5 py-0.5 rounded bg-gcal-surface w-fit mt-0.5">
+                                   {habit.category}
+                                 </span>
+                               )}
+                             </div>
                           </div>
                           
                           {(habit.timeStart || habit.timeEnd) && (
@@ -742,6 +755,26 @@ function App() {
                   onChange={e => setNewHabitTimeEnd(e.target.value)}
                 />
               </div>
+            </div>
+
+            <div>
+               <label className="block text-xs font-bold text-gcal-muted mb-3 uppercase tracking-wider">Category</label>
+               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                 {categories.map(cat => (
+                   <button
+                     type="button"
+                     key={cat}
+                     onClick={() => setNewHabitCategory(cat)}
+                     className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 border ${
+                       newHabitCategory === cat 
+                         ? 'bg-gcal-blue text-white border-gcal-blue shadow-md scale-105' 
+                         : 'bg-transparent border-gcal-border text-gcal-text hover:border-gcal-blue hover:bg-gcal-surface/50'
+                     }`}
+                   >
+                     {cat}
+                   </button>
+                 ))}
+               </div>
             </div>
 
             <div>

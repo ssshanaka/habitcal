@@ -48,6 +48,7 @@ export const habitsService = {
       start_time: habit.timeStart ? `${habit.timeStart}:00` : null,
       end_time: habit.timeEnd ? `${habit.timeEnd}:00` : null,
       color: habit.color,
+      category: habit.category || null,
       order: habit.order || 0,
       active: true
     }));
@@ -76,6 +77,7 @@ export const habitsService = {
         start_time: habit.timeStart ? `${habit.timeStart}:00` : null,
         end_time: habit.timeEnd ? `${habit.timeEnd}:00` : null,
         color: habit.color,
+        category: habit.category || null,
         order: habit.order
       })
       .eq('id', habit.id);

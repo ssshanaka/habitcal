@@ -52,6 +52,16 @@ export const colors = [
   '#e8eaed', // Grey
 ];
 
+export const categories = [
+  'Health',
+  'Work',
+  'Mind',
+  'Finance',
+  'Personal',
+  'Social',
+  'Other'
+];
+
 // --- Streak Calculation Utilities ---
 
 /**

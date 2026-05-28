@@ -6,6 +6,7 @@ export interface Habit {
   timeStart?: string; // HH:mm format
   timeEnd?: string; // HH:mm format
   color: string;
+  category?: string;
   order: number;
   created_at?: string;
 }
