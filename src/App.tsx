@@ -40,23 +40,26 @@ import { habitsService } from './services/habits';
 import { syncService } from './services/sync';
 
 // --- Default Data with UUID-like IDs ---
-const DEFAULT_HABITS: Habit[] = [
-  { id: '11111111-1111-4111-8111-111111111111', title: 'Morning Jog', timeStart: '07:00', timeEnd: '07:30', color: colors[0], order: 0 },
-  { id: '22222222-2222-4222-8222-222222222222', title: 'Deep Work', timeStart: '09:00', timeEnd: '11:00', color: colors[1], order: 1 },
-  { id: '33333333-3333-4333-8333-333333333333', title: 'Read Book', timeStart: '21:00', timeEnd: '21:30', color: colors[3], order: 2 },
-];
+// Removed DEFAULT_HABITS from here as it is now managed in useHabits hook.
 
 function App() {
   // --- Auth ---
   const { user, loading, signOut, signInWithGoogle } = useAuth();
   
+  // --- Data ---
+  const {
+    habits,
+    completions,
+    dataLoaded,
+    toggleCompletion,
+    saveHabit,
+    deleteHabit,
+    setTodayForAll,
+    moveHabit
+  } = useHabits(user, loading);
+
   // --- State ---
   const [currentDate, setCurrentDate] = useState(new Date());
-  
-  // Data State
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [completions, setCompletions] = useState<Record<string, boolean>>({});
-  const [dataLoaded, setDataLoaded] = useState(false);
   
   // Streak State - Calculated from completions
   const streaks = useMemo(() => {
@@ -71,10 +74,9 @@ function App() {
   const heatmapData = useMemo(() => {
     const heatmap: Record<string, number> = {};
     Object.keys(completions).forEach(key => {
-      // key format: "habitId_YYYY-MM-DD"
       const parts = key.split('_');
       if (parts.length >= 2) {
-        const dateStr = parts.slice(1).join('_'); // Handle edge case of multiple underscores
+        const dateStr = parts.slice(1).join('_');
         if (completions[key]) {
           heatmap[dateStr] = (heatmap[dateStr] || 0) + 1;
         }
@@ -163,98 +165,7 @@ function App() {
     localStorage.setItem('habitCal_theme', theme);
   }, [theme]);
 
-  // 2. Data Loading Strategy
-  useEffect(() => {
-    async function loadData() {
-      if (loading) return; // Wait for auth check
-
-      if (user) {
-        // --- User Mode: Load from Supabase ---
-        try {
-          const fetchedHabits = await habitsService.fetchHabits();
-          const fetchedCompletions = await habitsService.fetchCompletions();
-          
-          setHabits(fetchedHabits);
-          setCompletions(fetchedCompletions);
-        } catch (error) {
-          console.error('Failed to load user data', error);
-          // Fallback? Toast?
-        }
-      } else {
-        // --- Guest Mode: Load from LocalStorage ---
-        const savedHabits = localStorage.getItem('habitCal_habits');
-        const savedCompletions = localStorage.getItem('habitCal_completions');
-        
-        if (savedHabits) {
-          setHabits(JSON.parse(savedHabits));
-        } else {
-          setHabits(DEFAULT_HABITS); // Set defaults for fresh guest
-        }
-        
-        if (savedCompletions) {
-          setCompletions(JSON.parse(savedCompletions));
-        }
-      }
-      setDataLoaded(true);
-    }
-    
-    loadData();
-  }, [user, loading]);
-
-  // 3. Data Persistence Strategies
-  // A. Guest: Persist to LocalStorage on change
-  useEffect(() => {
-    if (!user && dataLoaded) {
-      localStorage.setItem('habitCal_completions', JSON.stringify(completions));
-      localStorage.setItem('habitCal_habits', JSON.stringify(habits));
-    }
-  }, [completions, habits, user, dataLoaded]);
-
-  // B. User: Sync handled in CRUD handlers, avoiding naive useEffect sync which might overwrite db with stale state
-  
-  // 4. Sync on Init (Migration)
-  useEffect(() => {
-    // If user just logged in and we have local data, we might want to sync it.
-    // However, deciding *when* to sync is tricky. Ideally right after login.
-    // simpler approach: We rely on the user manually entering "Guest Mode" data before logging in.
-    // When they log in, the 'loading' state changes.
-    // If we want to auto-sync local data to cloud on first login:
-    
-    const performSync = async () => {
-       if (user && !loading) {
-           const localHabitsRaw = localStorage.getItem('habitCal_habits');
-           const localCompletionsRaw = localStorage.getItem('habitCal_completions');
-           
-           if (localHabitsRaw) {
-               // We have local data. Let's sync it if we haven't already.
-               // How to track "already synced"? 
-               // Maybe check if DB is empty? Or just try to upsert.
-               // For simplicity in this iteration: We trigger sync if we find local data, then clear local data to avoid re-syncing.
-               
-               const localHabits = JSON.parse(localHabitsRaw);
-               const localCompletions = JSON.parse(localCompletionsRaw || '{}');
-               
-               if (localHabits.length > 0) {
-                   await syncService.syncLocalToCloud(localHabits, localCompletions);
-                   // Clear local storage to switch to "Cloud Mode" fully
-                   localStorage.removeItem('habitCal_habits');
-                   localStorage.removeItem('habitCal_completions');
-                   
-                   // Re-fetch to update UI
-                   const fetchedHabits = await habitsService.fetchHabits();
-                   const fetchedCompletions = await habitsService.fetchCompletions();
-                   setHabits(fetchedHabits);
-                   setCompletions(fetchedCompletions);
-               }
-           }
-       }
-    };
-    
-    performSync();
-  }, [user, loading]);
-
-
-  // 5. Auth Reminder Timer
+  // 2. Auth Reminder Timer
   useEffect(() => {
     if (!user && !loading && !reminderDismissed) {
       const timer = setTimeout(() => {
@@ -264,7 +175,7 @@ function App() {
     }
   }, [user, loading, reminderDismissed]);
 
-  // 6. Click Outside
+  // 3. Click Outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
@@ -300,30 +211,6 @@ function App() {
   }, [sortedHabits, todayFocusOnly, completions, todayKey]);
 
   // --- Handlers ---
-  const toggleCompletion = async (habitId: string, date: Date) => {
-    const key = `${habitId}_${formatDateKey(date)}`;
-    const isNowCompleted = !completions[key];
-    
-    // Optimistic Update
-    setCompletions(prev => ({
-      ...prev,
-      [key]: isNowCompleted
-    }));
-
-    if (user) {
-      try {
-        await habitsService.toggleCompletion(habitId, date, isNowCompleted);
-      } catch (err) {
-        // Revert on failure
-        setCompletions(prev => ({
-            ...prev,
-            [key]: !isNowCompleted
-        }));
-        console.error('Failed to toggle completion', err);
-      }
-    }
-  };
-
   const isCompleted = (habitId: string, date: Date) => {
     const key = `${habitId}_${formatDateKey(date)}`;
     return !!completions[key];
@@ -346,36 +233,16 @@ function App() {
   };
 
   const setTodayForAllHabits = async (completed: boolean) => {
-    const todayDate = new Date();
-    const updates: Record<string, boolean> = {};
-    habits.forEach(habit => {
-      updates[`${habit.id}_${todayKey}`] = completed;
-    });
-
-    const prevCompletions = completions;
-    setCompletions(prev => ({ ...prev, ...updates }));
-
-    if (user) {
-      try {
-        await Promise.all(
-          habits.map(habit => habitsService.toggleCompletion(habit.id, todayDate, completed))
-        );
-      } catch (error) {
-        console.error('Failed to bulk update today completions', error);
-        setCompletions(prevCompletions);
-      }
-    }
+    await setTodayForAll(completed);
   };
 
   const handleSaveHabit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newHabitTitle.trim()) return;
 
-    let updatedHabits = [...habits];
     let habitToSave: Habit;
 
     if (editingHabitId) {
-      // Update existing
        const existing = habits.find(h => h.id === editingHabitId);
        if (!existing) return;
        
@@ -387,12 +254,9 @@ function App() {
         timeEnd: newHabitTimeEnd || undefined,
         color: newHabitColor,
       };
-      
-      updatedHabits = habits.map(h => h.id === editingHabitId ? habitToSave : h);
     } else {
-      // Create new
       habitToSave = {
-        id: generateId(), // UUID
+        id: generateId(),
         title: newHabitTitle,
         description: newHabitDescription || undefined,
         timeStart: newHabitTimeStart || undefined,
@@ -400,43 +264,17 @@ function App() {
         color: newHabitColor,
         order: habits.length,
       };
-      updatedHabits = [...habits, habitToSave];
     }
 
-    // Optimistic UI update
-    setHabits(updatedHabits);
+    await saveHabit(habitToSave, !!editingHabitId);
     setIsModalOpen(false);
     resetForm();
-
-    if (user) {
-        try {
-            if (editingHabitId) {
-                await habitsService.updateHabit(habitToSave);
-            } else {
-                await habitsService.createHabit(habitToSave);
-            }
-        } catch (err) {
-            console.error('Failed to save habit', err);
-            // Could revert state here
-            // setHabits(previousHabits)
-        }
-    }
   };
 
   const handleDeleteHabit = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this habit?')) {
-      const prevHabits = habits;
-      setHabits(habits.filter(h => h.id !== id));
+      await deleteHabit(id);
       if (isModalOpen) setIsModalOpen(false);
-      
-      if (user) {
-          try {
-              await habitsService.deleteHabit(id);
-          } catch (err) {
-              console.error('Failed to delete', err);
-              setHabits(prevHabits);
-          }
-      }
     }
   };
 
@@ -465,31 +303,9 @@ function App() {
     setEditingHabitId(null);
   };
 
-  const moveHabit = (index: number, direction: 'up' | 'down') => {
-    if (sortMode === SortMode.TIME) return; 
-    
-    // NOTE: Order is not currently synced to DB, only local state for session
-    const newHabits = [...habits];
-    
-    if (direction === 'up' && index > 0) {
-      [newHabits[index], newHabits[index - 1]] = [newHabits[index - 1], newHabits[index]];
-      newHabits.forEach((h, i) => h.order = i);
-      setHabits(newHabits);
-    } else if (direction === 'down' && index < newHabits.length - 1) {
-      [newHabits[index], newHabits[index + 1]] = [newHabits[index + 1], newHabits[index]];
-      newHabits.forEach((h, i) => h.order = i);
-      setHabits(newHabits);
-    }
-  };
-
   const handleSignOut = () => {
     signOut();
     setIsProfileOpen(false);
-    // State will clear on re-render due to 'user' becoming null and triggering loadData logic
-    // which falls back to local storage (or starts empty if we cleared local storage on sync).
-    // If we want to clear local view on sign out:
-    setHabits([]);
-    setCompletions({});
   }
   
   const handleLoginClick = () => {

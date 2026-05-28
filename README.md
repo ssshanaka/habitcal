@@ -18,7 +18,7 @@ No more cluttered, disorganized lists. HabitCal automatically organizes your hab
 
 ## 🔒 Privacy-Focused & Persistent
 
-Your data belongs to you. HabitCal uses local browser persistence to ensure your habits and progress are saved automatically without the need for an account or external server.
+Your data belongs to you. HabitCal offers flexible persistence: it uses local browser storage for guest users and seamless cloud synchronization via Supabase for authenticated users, ensuring your progress is safe across devices.
 
 ## 🚀 Key Features
 
