@@ -3,8 +3,9 @@ import { Habit, SortMode } from '../types';
 import { habitsService } from '../services/habits';
 import { syncService } from '../services/sync';
 import { getWeekStart, getWeekDays, formatDateKey, calculateStreak } from '../utils';
+import { ToastType } from './useToast';
 
-export function useHabits(user: any, loading: boolean) {
+export function useHabits(user: any, loading: boolean, addToast?: (message: string, type?: ToastType) => void) {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [completions, setCompletions] = useState<Record<string, boolean>>({});
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -28,6 +29,7 @@ export function useHabits(user: any, loading: boolean) {
           setCompletions(fetchedCompletions);
         } catch (error) {
           console.error('Failed to load user data', error);
+          addToast?.('Failed to load user data', 'error');
         }
       } else {
         const savedHabits = localStorage.getItem('habitCal_habits');
@@ -92,7 +94,7 @@ export function useHabits(user: any, loading: boolean) {
         await habitsService.toggleCompletion(habitId, date, isNowCompleted);
       } catch (err) {
         setCompletions(prev => ({ ...prev, [key]: !isNowCompleted }));
-        console.error('Failed to toggle completion', err);
+        addToast?.('Failed to update completion', 'error');
       }
     }
   };
@@ -114,7 +116,7 @@ export function useHabits(user: any, loading: boolean) {
           await habitsService.createHabit(habit);
         }
       } catch (err) {
-        console.error('Failed to save habit', err);
+        addToast?.('Failed to save habit', 'error');
       }
     }
   };
@@ -126,7 +128,7 @@ export function useHabits(user: any, loading: boolean) {
       try {
         await habitsService.deleteHabit(id);
       } catch (err) {
-        console.error('Failed to delete', err);
+        addToast?.('Failed to delete habit', 'error');
         setHabits(prevHabits);
       }
     }
@@ -150,6 +152,7 @@ export function useHabits(user: any, loading: boolean) {
         );
       } catch (error) {
         setCompletions(prevCompletions);
+        addToast?.('Failed to update today\'s habits', 'error');
       }
     }
   };
@@ -171,7 +174,7 @@ export function useHabits(user: any, loading: boolean) {
           habitsService.updateHabit({ ...updatedHabits[targetIndex], order: targetIndex })
         ]);
       } catch (err) {
-        console.error('Failed to persist habit order', err);
+        addToast?.('Failed to persist habit order', 'error');
         setHabits(habits);
       }
     }

@@ -37,6 +37,8 @@ import { useAuth } from './hooks/useAuth';
 import { AuthReminder } from './components/AuthReminder';
 import { ProfileLoginPopup } from './components/ProfileLoginPopup';
 import { HeatmapCalendar } from './components/HeatmapCalendar';
+import { Toast } from './components/Toast';
+import { useToast } from './hooks/useToast';
 import { habitsService } from './services/habits';
 import { syncService } from './services/sync';
 
@@ -57,7 +59,7 @@ function App() {
     deleteHabit,
     setTodayForAll,
     moveHabit
-  } = useHabits(user, loading);
+  } = useHabits(user, loading, addToast);
 
   // --- State ---
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -273,12 +275,14 @@ function App() {
     await saveHabit(habitToSave, !!editingHabitId);
     setIsModalOpen(false);
     resetForm();
+    addToast(editingHabitId ? 'Habit updated successfully' : 'Habit created successfully', 'success');
   };
 
   const handleDeleteHabit = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this habit?')) {
       await deleteHabit(id);
-      if (isModalOpen) setIsModalOpen(false);
+      setIsModalOpen(false);
+      addToast('Habit deleted successfully', 'success');
     }
   };
 
@@ -827,6 +831,8 @@ function App() {
              setShowAuthReminder(false);
          }} 
       />
+
+      <Toast toasts={toasts} onRemove={removeToast} />
 
     </div>
   );
