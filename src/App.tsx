@@ -73,20 +73,18 @@ function App() {
     return streakMap;
   }, [habits, completions]);
   
-  // Heatmap Data - Count completions per day
-  const heatmapData = useMemo(() => {
-    const heatmap: Record<string, number> = {};
-    Object.keys(completions).forEach(key => {
-      const parts = key.split('_');
-      if (parts.length >= 2) {
-        const dateStr = parts.slice(1).join('_');
-        if (completions[key]) {
-          heatmap[dateStr] = (heatmap[dateStr] || 0) + 1;
+  // Helper: Detailed Habit Statistics
+  const getHabitCompletionRate = (habitId: string, days: number = 30) => {
+    let completedCount = 0;
+    for (let i = 0; i < days; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        if (completions[`${habitId}_${formatDateKey(d)}`]) {
+            completedCount++;
         }
-      }
-    });
-    return heatmap;
-  }, [completions]);
+    }
+    return Math.round((completedCount / days) * 100);
+  };
   
   // UI State
   const [isModalOpen, setIsModalOpen] = useState(false);
