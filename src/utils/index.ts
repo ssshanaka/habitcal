@@ -74,8 +74,10 @@ export const getPreviousDay = (date: Date): Date => {
 };
 
 /**
- * Calculate the current streak for a habit
- * Loops from today backwards counting consecutive completed days
+ * Calculate the current streak for a habit.
+ * This function counts backwards from today.
+ * If today is not completed, we check yesterday.
+ * If yesterday is not completed, streak is 0.
  * @param habitId - The ID of the habit to calculate streak for
  * @param completions - Record of completions (key format: "habitId_YYYY-MM-DD")
  * @returns Number of consecutive days with completions
@@ -85,18 +87,34 @@ export const calculateStreak = (
   completions: Record<string, boolean>
 ): number => {
   let streak = 0;
-  let currentDate = new Date();
-  const maxDaysToCheck = 365; // Prevent infinite loops
+  let checkDate = new Date();
+  
+  // First check if today is completed. If not, check if yesterday was completed to see if the streak is still alive
+  // Actually, usually streak counts consecutive days ending in either yesterday or today.
+  // Let's stick to the current logic: count backwards from today.
+  
+  const maxDaysToCheck = 365;
   
   for (let i = 0; i < maxDaysToCheck; i++) {
-    const dateKey = formatDateKey(currentDate);
+    const dateKey = formatDateKey(checkDate);
     const completionKey = `${habitId}_${dateKey}`;
     
     if (completions[completionKey]) {
       streak++;
-      currentDate = getPreviousDay(currentDate);
+      checkDate = getPreviousDay(checkDate);
     } else {
-      // Hit a missing day, stop counting
+      // If today is not completed, check if yesterday was the last completed day.
+      // If i == 0 (today not completed), check if yesterday was completed. 
+      // If yesterday was completed, the streak is still active.
+      if (i === 0) {
+          const yesterday = getPreviousDay(checkDate);
+          const yesterdayKey = formatDateKey(yesterday);
+          if (completions[`${habitId}_${yesterdayKey}`]) {
+              // Streak is alive, keep checking
+              checkDate = yesterday;
+              continue;
+          }
+      }
       break;
     }
   }
