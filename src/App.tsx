@@ -39,6 +39,7 @@ import { useHabits } from './hooks/useHabits';
 import { AuthReminder } from './components/AuthReminder';
 import { ProfileLoginPopup } from './components/ProfileLoginPopup';
 import { HeatmapCalendar } from './components/HeatmapCalendar';
+import { NoticeModal } from './components/NoticeModal';
 import { Toast } from './components/Toast';
 import { useToast } from './hooks/useToast';
 import { habitsService } from './services/habits';
@@ -98,6 +99,7 @@ function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNoticeOpen, setIsNoticeOpen] = useState(false);
   
   // Reminder State
   const [showAuthReminder, setShowAuthReminder] = useState(false);
@@ -186,6 +188,19 @@ function App() {
     else html.classList.remove('dark');
     localStorage.setItem('habitCal_theme', theme);
   }, [theme]);
+
+  // Notice Modal Check
+  useEffect(() => {
+    const acknowledged = localStorage.getItem('habitCal_notice_acknowledged');
+    if (!acknowledged) {
+      setIsNoticeOpen(true);
+    }
+  }, []);
+
+  const handleCloseNotice = () => {
+    localStorage.setItem('habitCal_notice_acknowledged', 'true');
+    setIsNoticeOpen(false);
+  };
 
   // 2. Auth Reminder Timer
   useEffect(() => {
@@ -872,6 +887,8 @@ function App() {
              setShowAuthReminder(false);
          }} 
       />
+
+      <NoticeModal isOpen={isNoticeOpen} onClose={handleCloseNotice} />
 
       <Toast toasts={toasts} onRemove={removeToast} />
 
