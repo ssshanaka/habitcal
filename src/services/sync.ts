@@ -4,37 +4,35 @@ import { formatDateKey } from '@/utils';
 
 export const syncService = {
   async syncLocalToCloud(localHabits: Habit[], localCompletions: Record<string, boolean>) {
-    console.log('Starting sync...', localHabits);
+    console.log('Starting bulk sync...');
     
-    // 1. Sync Habits
-    for (const habit of localHabits) {
-      try {
-        // Check if ID is a valid UUID? If we used crypto.randomUUID, it is.
-        // If it's legacy '1', '2', etc., we might fail constraint.
-        // We will TRY to insert. If it fails due to UUID format, we might need to skip or regenerate.
-        // For now, assuming we fixed IDs or new habits use UUIDs.
-        
-        await habitsService.createHabit(habit);
-        
-        // 2. Sync Completions for this habit
-        // keys are "habitId_YYYY-MM-DD"
-        const relevantKeys = Object.keys(localCompletions).filter(k => k.startsWith(habit.id));
-        
-        for (const key of relevantKeys) {
-            if (localCompletions[key]) {
-                const datePart = key.split('_')[1];
-                if (datePart) {
-                    await habitsService.toggleCompletion(habit.id, new Date(datePart), true);
-                }
-            }
-        }
-        
-      } catch (err) {
-        console.error('Failed to sync habit:', habit.title, err);
-        // Continue with others
+    try {
+      // 1. Bulk Sync Habits
+      if (localHabits.length > 0) {
+        await habitsService.createHabits(localHabits);
       }
+      
+      // 2. Bulk Sync Completions
+      const completionsToSync: Completion[] = [];
+      Object.keys(localCompletions).forEach(key => {
+        if (localCompletions[key]) {
+          const [habitId, date] = key.split('_');
+          if (habitId && date) {
+            completionsToSync.push({ habitId, date, completed: true });
+          }
+        }
+      });
+      
+      if (completionsToSync.length > 0) {
+        // Supabase has a limit on number of rows per request, but usually it's high enough for this.
+        // We can chunk if necessary, but for habit tracking, a few thousand is usually fine.
+        await habitsService.createCompletions(completionsToSync);
+      }
+      
+      console.log('Sync completed successfully.');
+    } catch (err) {
+      console.error('Sync failed:', err);
+      throw err;
     }
-    
-    // Clear local storage logic should be handled by caller or we simply stop using it.
   }
 };

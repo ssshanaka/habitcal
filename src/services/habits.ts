@@ -33,20 +33,38 @@ export const habitsService = {
   },
 
   async createHabit(habit: Habit) {
+    await this.createHabits([habit]);
+  },
+
+  async createHabits(habits: Habit[]) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    const { error } = await supabase.from('habits').insert({
-      id: habit.id, // Use the UUID generated locally
+    const rows = habits.map(habit => ({
+      id: habit.id,
       user_id: user.id,
       title: habit.title,
       description: habit.description,
       start_time: habit.timeStart ? `${habit.timeStart}:00` : null,
       end_time: habit.timeEnd ? `${habit.timeEnd}:00` : null,
       color: habit.color,
+      category: habit.category || null,
+      order: habit.order || 0,
       active: true
-    });
+    }));
 
+    const { error } = await supabase.from('habits').insert(rows);
+    if (error) throw error;
+  },
+
+  async createCompletions(completions: Completion[]) {
+    const { error } = await supabase.from('habit_logs').upsert(
+      completions.map(c => ({
+        habit_id: c.habitId,
+        date: c.date,
+        completed: c.completed
+      }))
+    );
     if (error) throw error;
   },
 
@@ -58,7 +76,9 @@ export const habitsService = {
         description: habit.description,
         start_time: habit.timeStart ? `${habit.timeStart}:00` : null,
         end_time: habit.timeEnd ? `${habit.timeEnd}:00` : null,
-        color: habit.color
+        color: habit.color,
+        category: habit.category || null,
+        order: habit.order
       })
       .eq('id', habit.id);
 
