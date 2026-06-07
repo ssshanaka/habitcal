@@ -17,7 +17,8 @@ import {
   Target,
   Sparkles,
   BarChart3,
-  Search
+  Search,
+  RefreshCw
 } from 'lucide-react';
 import { 
   getWeekStart, 
@@ -76,17 +77,21 @@ function App() {
     return streakMap;
   }, [habits, completions]);
   
-  // Helper: Detailed Habit Statistics
-  const getHabitCompletionRate = (habitId: string, days: number = 30) => {
-    let completedCount = 0;
-    for (let i = 0; i < days; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        if (completions[`${habitId}_${formatDateKey(d)}`]) {
-            completedCount++;
-        }
-    }
-    return Math.round((completedCount / days) * 100);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleRefresh = async () => {
+      setIsSyncing(true);
+      try {
+          const fetchedHabits = await habitsService.fetchHabits();
+          const fetchedCompletions = await habitsService.fetchCompletions();
+          setHabits(fetchedHabits);
+          setCompletions(fetchedCompletions);
+          addToast('Data synchronized', 'success');
+      } catch (err) {
+          addToast('Failed to sync data', 'error');
+      } finally {
+          setIsSyncing(false);
+      }
   };
   
   // UI State
@@ -380,16 +385,21 @@ function App() {
             </h2>
           </div>
 
-          {/* Search Input */}
-          <div className="relative max-w-xs ml-4 hidden md:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gcal-muted" size={18} />
-            <input 
-              type="text" 
-              placeholder="Search habits..." 
-              className="w-full bg-gcal-surface/50 border border-gcal-border rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-gcal-blue transition-all placeholder:text-gcal-muted/50"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
+          {/* Search & Refresh */}
+          <div className="flex items-center gap-2">
+            <div className="relative max-w-xs hidden md:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gcal-muted" size={18} />
+              <input 
+                type="text" 
+                placeholder="Search habits..." 
+                className="w-full bg-gcal-surface/50 border border-gcal-border rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-gcal-blue transition-all placeholder:text-gcal-muted/50"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Button variant="icon" onClick={handleRefresh} className={isSyncing ? 'animate-spin' : ''}>
+                <RefreshCw size={20} />
+            </Button>
           </div>
         </div>
 
