@@ -16,7 +16,8 @@ import {
   LogOut,
   Target,
   Sparkles,
-  BarChart3
+  BarChart3,
+  Search
 } from 'lucide-react';
 import { 
   getWeekStart, 
@@ -34,6 +35,7 @@ import { Button } from './components/Button';
 import { Modal } from './components/Modal';
 import { Login } from './components/Login';
 import { useAuth } from './hooks/useAuth';
+import { useHabits } from './hooks/useHabits';
 import { AuthReminder } from './components/AuthReminder';
 import { ProfileLoginPopup } from './components/ProfileLoginPopup';
 import { HeatmapCalendar } from './components/HeatmapCalendar';
@@ -48,6 +50,7 @@ import { syncService } from './services/sync';
 function App() {
   // --- Auth ---
   const { user, loading, signOut, signInWithGoogle } = useAuth();
+  const { toasts, addToast, removeToast } = useToast();
   
   // --- Data ---
   const {
@@ -87,6 +90,7 @@ function App() {
   };
   
   // UI State
+  const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>(SortMode.TIME);
@@ -208,9 +212,20 @@ function App() {
   }, [habits, sortMode]);
 
   const visibleHabits = useMemo(() => {
-    if (!todayFocusOnly) return sortedHabits;
-    return sortedHabits.filter(habit => !completions[`${habit.id}_${todayKey}`]);
-  }, [sortedHabits, todayFocusOnly, completions, todayKey]);
+    let list = sortedHabits;
+    
+    if (searchQuery.trim()) {
+      list = list.filter(habit => 
+        habit.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (todayFocusOnly) {
+      list = list.filter(habit => !completions[`${habit.id}_${todayKey}`]);
+    }
+
+    return list;
+  }, [sortedHabits, todayFocusOnly, completions, todayKey, searchQuery]);
 
   // --- Handlers ---
   const isCompleted = (habitId: string, date: Date) => {
@@ -363,6 +378,18 @@ function App() {
             <h2 className="text-xl font-normal ml-2 text-gcal-text">
               {weekStart.toLocaleString('default', { month: 'long', year: 'numeric' })}
             </h2>
+          </div>
+
+          {/* Search Input */}
+          <div className="relative max-w-xs ml-4 hidden md:block">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gcal-muted" size={18} />
+            <input 
+              type="text" 
+              placeholder="Search habits..." 
+              className="w-full bg-gcal-surface/50 border border-gcal-border rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-gcal-blue transition-all placeholder:text-gcal-muted/50"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
           </div>
         </div>
 

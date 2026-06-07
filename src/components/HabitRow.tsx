@@ -1,0 +1,126 @@
+import React from 'react';
+import { Check, Trash2, Clock, ArrowUp, ArrowDown } from 'lucide-react';
+import { Habit, SortMode } from '../types';
+import { formatTime } from '../utils';
+
+interface HabitRowProps {
+  habit: Habit;
+  index: number;
+  weekDays: Date[];
+  isCompleted: (habitId: string, date: Date) => boolean;
+  toggleCompletion: (habitId: string, date: Date) => void;
+  openEditModal: (habit: Habit) => void;
+  handleDeleteHabit: (id: string) => Promise<void>;
+  moveHabit: (index: number, direction: 'up' | 'down') => void;
+  sortMode: SortMode;
+  todayFocusOnly: boolean;
+  streak: number;
+}
+
+const HabitRow: React.FC<HabitRowProps> = ({
+  habit,
+  index,
+  weekDays,
+  isCompleted,
+  toggleCompletion,
+  openEditModal,
+  handleDeleteHabit,
+  moveHabit,
+  sortMode,
+  todayFocusOnly,
+  streak
+}) => {
+  return (
+    <div className="flex border-b border-gcal-border hover:bg-gcal-surface/50 group transition-all duration-200 min-h-[90px] hover:shadow-md">
+      {/* Habit Info Column */}
+      <div 
+        className="w-48 md:w-64 flex-shrink-0 border-r border-gcal-border p-4 flex flex-col justify-center relative group/habit cursor-pointer hover:bg-gcal-surface/50 transition-all duration-200"
+        onClick={() => openEditModal(habit)}
+      >
+         <div className="pr-8">
+            <div className="flex items-center justify-between mb-1">
+               <div className="flex flex-col">
+                 <span className="font-bold truncate text-lg" style={{ color: habit.color }}>{habit.title}</span>
+                 {habit.category && (
+                   <span className="text-[10px] font-bold uppercase tracking-wider text-gcal-muted px-1.5 py-0.5 rounded bg-gcal-surface w-fit mt-0.5">
+                     {habit.category}
+                   </span>
+                 )}
+               </div>
+            </div>
+            
+            {(habit.timeStart || habit.timeEnd) && (
+              <div className="text-xs text-gcal-muted flex items-center gap-1">
+                <Clock size={10} />
+                {formatTime(habit.timeStart)} {habit.timeEnd && `- ${formatTime(habit.timeEnd)}`}
+              </div>
+            )}
+            {habit.description && (
+              <p className="text-xs text-gcal-muted mt-1">{habit.description}</p>
+            )}
+            
+            {/* Streak Counter */}
+            {streak > 0 && (
+              <div className="flex items-center gap-1 text-sm mt-1">
+                <span className="text-base">🔥</span>
+                <span className="font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
+                  {streak} day{streak !== 1 ? 's' : ''}
+                </span>
+              </div>
+            )}
+         </div>
+
+         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+            {sortMode === SortMode.MANUAL && !todayFocusOnly && (
+              <>
+                <button onClick={() => moveHabit(index, 'up')} disabled={index === 0} className="hover:text-gcal-text text-gcal-muted disabled:opacity-30 p-1"><ArrowUp size={12} /></button>
+                <button onClick={() => moveHabit(index, 'down')} disabled={index === 0} className="hover:text-gcal-text text-gcal-muted disabled:opacity-30 p-1"><ArrowDown size={12} /></button>
+              </>
+            )}
+            <button onClick={() => handleDeleteHabit(habit.id)} className="hover:text-red-400 text-gcal-muted p-1" title="Delete"><Trash2 size={12} /></button>
+         </div>
+      </div>
+
+      {/* Checkbox Columns */}
+      <div className="flex-1 grid grid-cols-7">
+        {weekDays.map((day, i) => {
+          const completed = isCompleted(habit.id, day);
+          
+          return (
+            <div 
+              key={`${habit.id}-${i}`} 
+              className="border-r border-gcal-border last:border-r-0 flex items-center justify-center relative"
+            >
+               <label className="cursor-pointer w-full h-full flex items-center justify-center hover:bg-gcal-muted/5 transition-all duration-200">
+                 <input 
+                   type="checkbox" 
+                   className="sr-only"
+                   checked={completed}
+                   onChange={() => toggleCompletion(habit.id, day)}
+                 />
+                 <div 
+                   className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                     completed 
+                       ? `bg-opacity-30 border-transparent shadow-lg scale-110` 
+                       : 'border-gcal-border hover:border-gcal-blue hover:scale-105'
+                   }`}
+                   style={{ 
+                     backgroundColor: completed ? habit.color : 'transparent',
+                     borderColor: completed ? habit.color : undefined,
+                     boxShadow: completed ? `0 0 15px ${habit.color}40` : undefined
+                   }}
+                 >
+                   {completed && (
+                     <Check size={24} style={{ color: 'var(--gcal-bg-solid)' }} strokeWidth={3} className="animate-in" />
+                   )}
+                 </div>
+               </label>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export default HabitRow;
