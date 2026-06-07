@@ -1,5 +1,5 @@
 import { habitsService } from './habits';
-import { Habit } from '@/types';
+import { Habit, Completion } from '@/types';
 import { formatDateKey } from '@/utils';
 
 export const syncService = {

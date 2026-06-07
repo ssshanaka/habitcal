@@ -68,7 +68,7 @@ const Sidebar: React.FC<SidebarProps> = ({
            </select>
         </div>
         <button
-          onClick={() => setTodayFocusOnly(prev => !prev)}
+          onClick={() => setTodayFocusOnly(!todayFocusOnly)}
           className={`w-full text-left flex items-center justify-between gap-2 glassmorphism p-3 rounded-2xl transition-all hover:shadow-md text-sm ${
             todayFocusOnly ? 'ring-1 ring-gcal-blue' : ''
           }`}

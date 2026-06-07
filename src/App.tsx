@@ -156,6 +156,22 @@ function App() {
     ? Math.round((completionStats.weeklyCompleted / completionStats.weeklyTotal) * 100)
     : 0;
 
+  // Heatmap Data calculation
+  const heatmapData = useMemo(() => {
+    const data: Record<string, number> = {};
+    Object.keys(completions).forEach(key => {
+      if (completions[key]) {
+        // key format is `${habitId}_${dateKey}`
+        const parts = key.split('_');
+        if (parts.length >= 2) {
+          const dateKey = parts[parts.length - 1];
+          data[dateKey] = (data[dateKey] || 0) + 1;
+        }
+      }
+    });
+    return data;
+  }, [completions]);
+
   // --- Effects ---
 
   // 1. Theme (Independent)
