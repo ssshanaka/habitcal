@@ -157,25 +157,29 @@ export function useHabits(user: any, loading: boolean, addToast?: (message: stri
     }
   };
 
-  const moveHabit = async (index: number, direction: 'up' | 'down') => {
-    if (index < 0 || (direction === 'up' && index === 0) || (direction === 'down' && index === habits.length - 1)) return;
-
-    const newHabits = [...habits];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    [newHabits[index], newHabits[targetIndex]] = [newHabits[targetIndex], newHabits[index]];
-    
-    const updatedHabits = newHabits.map((h, i) => ({ ...h, order: i }));
-    setHabits(updatedHabits);
+  const clearAllCompletions = async () => {
+    const prevCompletions = completions;
+    setCompletions({});
 
     if (user) {
       try {
-        await Promise.all([
-          habitsService.updateHabit({ ...updatedHabits[index], order: index }),
-          habitsService.updateHabit({ ...updatedHabits[targetIndex], order: targetIndex })
-        ]);
+        await habitsService.clearAllCompletions();
       } catch (err) {
-        addToast?.('Failed to persist habit order', 'error');
-        setHabits(habits);
+        setCompletions(prevCompletions);
+        addToast?.('Failed to clear completions', 'error');
+      }
+    }
+  };
+
+  const moveHabit = (index: number, direction: 'up' | 'down') => {
+    const newHabits = [...habits];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex >= 0 && targetIndex < newHabits.length) {
+      [newHabits[index], newHabits[targetIndex]] = [newHabits[targetIndex], newHabits[index]];
+      newHabits.forEach((h, i) => h.order = i);
+      setHabits(newHabits);
+      if (user) {
+         habitsService.reorderHabits(newHabits);
       }
     }
   };
@@ -190,6 +194,7 @@ export function useHabits(user: any, loading: boolean, addToast?: (message: stri
     saveHabit,
     deleteHabit,
     setTodayForAll,
-    moveHabit
+    moveHabit,
+    clearAllCompletions
   };
 }

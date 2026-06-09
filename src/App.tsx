@@ -62,7 +62,8 @@ function App() {
     saveHabit,
     deleteHabit,
     setTodayForAll,
-    moveHabit
+    moveHabit,
+    clearAllCompletions
   } = useHabits(user, loading, addToast);
 
   // --- State ---
@@ -100,6 +101,7 @@ function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>(SortMode.TIME);
   const [todayFocusOnly, setTodayFocusOnly] = useState(false);
+  const [showHabitDetails, setShowHabitDetails] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -522,9 +524,9 @@ function App() {
                </select>
             </div>
             <button
-              onClick={() => setTodayFocusOnly(prev => !prev)}
+              onClick={() => setShowHabitDetails(prev => !prev)}
               className={`w-full text-left flex items-center justify-between gap-2 glassmorphism p-3 rounded-2xl transition-all hover:shadow-md text-sm ${
-                todayFocusOnly ? 'ring-1 ring-gcal-blue' : ''
+                showHabitDetails ? 'ring-1 ring-gcal-blue' : ''
               }`}
               style={{
                 background: 'var(--glass-bg)',
@@ -534,9 +536,9 @@ function App() {
             >
               <span className="flex items-center gap-2 font-medium">
                 <Target size={14} />
-                Focus on today
+                Show details
               </span>
-              <span className="text-gcal-muted">{todayFocusOnly ? 'On' : 'Off'}</span>
+              <span className="text-gcal-muted">{showHabitDetails ? 'On' : 'Off'}</span>
             </button>
           </div>
 
@@ -569,6 +571,30 @@ function App() {
               </Button>
               <Button variant="ghost" className="text-xs px-2 py-2" onClick={() => setTodayForAllHabits(false)}>
                 Reset today
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="text-xs px-2 py-2 text-red-400 hover:text-red-500 hover:bg-red-500/10"
+                onClick={async () => {
+                  if (window.confirm('Are you sure you want to clear ALL completions? This cannot be undone.')) {
+                    await clearAllCompletions();
+                    addToast('All completions cleared', 'success');
+                  }
+                }}
+              >
+                Clear all
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="text-xs px-2 py-2 text-red-400 hover:text-red-500 hover:bg-red-500/10"
+                onClick={async () => {
+                  if (window.confirm('Are you sure you want to clear ALL completions? This cannot be undone.')) {
+                    await clearAllCompletions();
+                    addToast('All completions cleared', 'success');
+                  }
+                }}
+              >
+                Clear all
               </Button>
             </div>
           </div>
@@ -659,7 +685,7 @@ function App() {
                               {formatTime(habit.timeStart)} {habit.timeEnd && `- ${formatTime(habit.timeEnd)}`}
                             </div>
                           )}
-                          {habit.description && (
+                          {showHabitDetails && habit.description && (
                             <p className="text-xs text-gcal-muted mt-1">{habit.description}</p>
                           )}
                           

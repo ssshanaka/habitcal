@@ -11,6 +11,15 @@ export interface Habit {
   created_at?: string;
 }
 
+export interface HabitPackage {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  habits: Omit<Habit, 'id' | 'user_id' | 'created_at'>[];
+  created_at?: string;
+}
+
 export interface Completion {
   habitId: string;
   date: string; // YYYY-MM-DD

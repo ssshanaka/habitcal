@@ -27,7 +27,8 @@ export const habitsService = {
       timeStart: h.start_time?.slice(0, 5), // 'HH:mm:ss' -> 'HH:mm'
       timeEnd: h.end_time?.slice(0, 5),
       color: h.color,
-      order: 0, // Schema doesn't have order yet, default to 0
+      category: h.category,
+      order: h.order || 0,
       created_at: h.created_at
     })) as Habit[];
   },
@@ -154,5 +155,21 @@ export const habitsService = {
       });
       if (error) throw error;
     }
+  },
+
+  async clearAllCompletions() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data: habits } = await supabase.from('habits').select('id').eq('user_id', user.id);
+    if (!habits?.length) return;
+
+    const habitIds = habits.map(h => h.id);
+    const { error } = await supabase
+      .from('habit_logs')
+      .delete()
+      .in('habit_id', habitIds);
+
+    if (error) throw error;
   }
 };
