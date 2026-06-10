@@ -24,6 +24,7 @@ export interface Completion {
   habitId: string;
   date: string; // YYYY-MM-DD
   completed: boolean;
+  timestamp?: string; // ISO string or HH:mm
 }
 
 export type ViewMode = 'week'; // Can be extended to month later

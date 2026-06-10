@@ -84,33 +84,30 @@ export const getPreviousDay = (date: Date): Date => {
  */
 export const calculateStreak = (
   habitId: string,
-  completions: Record<string, boolean>
+  completions: Record<string, boolean | { completed: boolean; timestamp: string }>
 ): number => {
   let streak = 0;
   let checkDate = new Date();
-  
-  // First check if today is completed. If not, check if yesterday was completed to see if the streak is still alive
-  // Actually, usually streak counts consecutive days ending in either yesterday or today.
-  // Let's stick to the current logic: count backwards from today.
   
   const maxDaysToCheck = 365;
   
   for (let i = 0; i < maxDaysToCheck; i++) {
     const dateKey = formatDateKey(checkDate);
     const completionKey = `${habitId}_${dateKey}`;
+    const comp = completions[completionKey];
+    const isCompleted = typeof comp === 'boolean' ? comp : comp?.completed;
     
-    if (completions[completionKey]) {
+    if (isCompleted) {
       streak++;
       checkDate = getPreviousDay(checkDate);
     } else {
-      // If today is not completed, check if yesterday was the last completed day.
-      // If i == 0 (today not completed), check if yesterday was completed. 
-      // If yesterday was completed, the streak is still active.
       if (i === 0) {
           const yesterday = getPreviousDay(checkDate);
           const yesterdayKey = formatDateKey(yesterday);
-          if (completions[`${habitId}_${yesterdayKey}`]) {
-              // Streak is alive, keep checking
+          const yesterdayComp = completions[`${habitId}_${yesterdayKey}`];
+          const isYesterdayCompleted = typeof yesterdayComp === 'boolean' ? yesterdayComp : yesterdayComp?.completed;
+
+          if (isYesterdayCompleted) {
               checkDate = yesterday;
               continue;
           }

@@ -117,7 +117,7 @@ export const habitsService = {
     const habitIds = habits.map(h => h.id);
     const { data: logs, error } = await supabase
       .from('habit_logs')
-      .select('habit_id, date, completed')
+      .select('*')
       .in('habit_id', habitIds)
       .eq('completed', true);
 
@@ -126,11 +126,15 @@ export const habitsService = {
      return {};
     }
 
-    const completionsMap: Record<string, boolean> = {};
+    const completionsMap: Record<string, { completed: boolean; timestamp: string }> = {};
     logs.forEach((log: any) => {
       // log.date is YYYY-MM-DD
+      // log.created_at is ISO string
       const key = `${log.habit_id}_${log.date}`;
-      completionsMap[key] = true;
+      completionsMap[key] = { 
+        completed: log.completed,
+        timestamp: log.created_at || log.date 
+      };
     });
 
     return completionsMap;

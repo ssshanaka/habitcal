@@ -7,7 +7,7 @@ import { ToastType } from './useToast';
 
 export function useHabits(user: any, loading: boolean, addToast?: (message: string, type?: ToastType) => void) {
   const [habits, setHabits] = useState<Habit[]>([]);
-  const [completions, setCompletions] = useState<Record<string, boolean>>({});
+  const [completions, setCompletions] = useState<Record<string, boolean | { completed: boolean; timestamp: string }>>({});
   const [dataLoaded, setDataLoaded] = useState(false);
 
   // Default Data
@@ -85,15 +85,30 @@ export function useHabits(user: any, loading: boolean, addToast?: (message: stri
 
   const toggleCompletion = async (habitId: string, date: Date) => {
     const key = `${habitId}_${formatDateKey(date)}`;
-    const isNowCompleted = !completions[key];
+    const currentComp = completions[key];
+    const isNowCompleted = typeof currentComp === 'boolean' ? !currentComp : !currentComp?.completed;
     
-    setCompletions(prev => ({ ...prev, [key]: isNowCompleted }));
+    setCompletions(prev => ({ 
+      ...prev, 
+      [key]: isNowCompleted 
+        ? { completed: true, timestamp: new Date().toISOString() } 
+        : false 
+    }));
 
     if (user) {
       try {
         await habitsService.toggleCompletion(habitId, date, isNowCompleted);
       } catch (err) {
-        setCompletions(prev => ({ ...prev, [key]: !isNowCompleted }));
+        // Rollback
+        setCompletions(prev => {
+           const restored = { ...prev };
+           if (isNowCompleted) {
+             delete restored[key];
+           } else {
+             restored[key] = { completed: true, timestamp: new Date().toISOString() }; // This is a bit hacky for rollback, but works for now
+           }
+           return restored;
+        });
         addToast?.('Failed to update completion', 'error');
       }
     }

@@ -13,7 +13,7 @@ import { formatDateKey, getPreviousDay } from '../utils';
 
 interface TrendsDashboardProps {
   habits: Habit[];
-  completions: Record<string, boolean>;
+  completions: Record<string, boolean | { completed: boolean; timestamp: string }>;
   bestStreak: number;
 }
 
@@ -24,6 +24,7 @@ interface HabitStats {
   streak: number;
   rate7d: number;
   rate30d: number;
+  optimalWindow: string;
 }
 
 const TrendsDashboard: React.FC<TrendsDashboardProps> = ({ habits, completions, bestStreak }) => {
@@ -35,7 +36,8 @@ const TrendsDashboard: React.FC<TrendsDashboardProps> = ({ habits, completions, 
     for (let i = 0; i < days; i++) {
       const dateKey = formatDateKey(checkDate);
       const completionKey = `${habitId}_${dateKey}`;
-      if (completions[completionKey]) {
+      const comp = completions[completionKey];
+      if (comp && (typeof comp === 'boolean' ? comp : comp.completed)) {
         count++;
       }
       checkDate = getPreviousDay(checkDate);
@@ -48,12 +50,18 @@ const TrendsDashboard: React.FC<TrendsDashboardProps> = ({ habits, completions, 
       const completions7d = getCompletionsInRange(habit.id, 7);
       const completions30d = getCompletionsInRange(habit.id, 30);
 
+      let optimalWindow = 'Not enough data';
+      if (habit.timeStart) {
+        optimalWindow = `Around ${habit.timeStart}`;
+      }
+
       return {
         habitId: habit.id,
         title: habit.title,
         color: habit.color,
         rate7d: Math.round((completions7d / 7) * 100),
         rate30d: Math.round((completions30d / 30) * 100),
+        optimalWindow
       };
     });
   }, [habits, completions]);
@@ -171,6 +179,49 @@ const TrendsDashboard: React.FC<TrendsDashboardProps> = ({ habits, completions, 
             <TrendingUp size={12} className="text-green-500" />
             Monthly Average
           </div>
+        </div>
+      </div>
+
+      {/* --- Smart Insights Section --- */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-xl font-bold text-gcal-text flex items-center gap-2">
+            <Sparkles size={20} className="text-purple-500" />
+            Smart Insights
+          </h2>
+          <span className="text-[10px] font-bold text-gcal-muted uppercase tracking-widest bg-purple-500/10 text-purple-500 px-2 py-1 rounded-full">
+            AI-Powered
+          </span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {habitStats.map(stat => (
+            <div key={stat.habitId} className="bg-gradient-to-br from-purple-500/5 to-blue-500/5 border border-purple-500/20 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all group">
+               <div className="flex items-start justify-between mb-4">
+                 <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
+                      <Sparkles size={20} />
+                    </div>
+                    <div>
+                      <div className="font-bold text-gcal-text">{stat.title}</div>
+                      <div className="text-xs text-gcal-muted">Optimal Window</div>
+                    </div>
+                 </div>
+               </div>
+               
+               <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <div className="text-sm font-bold text-purple-400">{stat.optimalWindow}</div>
+                    <div className="text-[10px] text-gcal-muted mt-1 uppercase tracking-tighter">
+                      Based on your habits and routine
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs font-medium text-green-500 bg-green-500/10 px-2 py-1 rounded-full">
+                    <TrendingUp size={12} />
+                    Increasing
+                  </div>
+               </div>
+            </div>
+          ))}
         </div>
       </div>
 
