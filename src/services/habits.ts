@@ -90,15 +90,24 @@ export const habitsService = {
   },
 
   async deleteHabit(habitId: string) {
-    // Soft delete or hard delete? Schema has active boolean, let's use that if avoiding data loss, 
-    // but user asked for delete. Let's hard delete for now to match local behavior, 
-    // or set active=false if using soft delete. 
-    // Given the schema has 'active', let's set active = false.
     const { error } = await supabase
       .from('habits')
-      .delete() // Actually, let's hard delete to be simple and clean
+      .delete()
       .eq('id', habitId);
       
+    if (error) throw error;
+  },
+
+  async reorderHabits(habits: Habit[]) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const rows = habits.map(habit => ({
+      id: habit.id,
+      order: habit.order
+    }));
+
+    const { error } = await supabase.from('habits').upsert(rows);
     if (error) throw error;
   },
 
@@ -106,14 +115,6 @@ export const habitsService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return {};
 
-    // We need to join with habits to filter by user, or assuming RLS handles it?
-    // Let's assume we can fetch logs for the user's habits. 
-    // But logs table doesn't have user_id, only habit_id.
-    // We first get habits, then logs.
-    
-    // Better: Select logs where habit_id in (user_habits)
-    // Or if RLS policies exist on habits, maybe we can just query logs if RLS checks join.
-    // Let's safe fetch:
     const { data: habits } = await supabase.from('habits').select('id').eq('user_id', user.id);
     if (!habits?.length) return {};
 
@@ -131,8 +132,6 @@ export const habitsService = {
 
     const completionsMap: Record<string, { completed: boolean; timestamp: string }> = {};
     logs.forEach((log: any) => {
-      // log.date is YYYY-MM-DD
-      // log.created_at is ISO string
       const key = `${log.habit_id}_${log.date}`;
       completionsMap[key] = { 
         completed: log.completed,
@@ -147,19 +146,40 @@ export const habitsService = {
     const dateKey = formatDateKey(date);
     
     if (isCompleted) {
-      // Insert
       const { error } = await supabase.from('habit_logs').upsert({
          habit_id: habitId,
          date: dateKey,
          completed: true
-      }, { onConflict: 'habit_id, date' }); // Assuming unique constraint
+      }, { onConflict: 'habit_id, date' });
       if (error) throw error;
     } else {
-      // Delete (or set false)
       const { error } = await supabase.from('habit_logs').delete().match({
         habit_id: habitId,
         date: dateKey
       });
+      if (error) throw error;
+    }
+  },
+
+  async setCompletionsForDate(date: Date, completed: boolean) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    const dateKey = formatDateKey(date);
+
+    const { data: habits } = await supabase.from('habits').select('id').eq('user_id', user.id);
+    if (!habits?.length) return;
+    const habitIds = habits.map(h => h.id);
+
+    if (completed) {
+      const rows = habitIds.map(id => ({
+        habit_id: id,
+        date: dateKey,
+        completed: true
+      }));
+      const { error } = await supabase.from('habit_logs').upsert(rows, { onConflict: 'habit_id, date' });
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from('habit_logs').delete().in('habit_id', habitIds).eq('date', dateKey);
       if (error) throw error;
     }
   },

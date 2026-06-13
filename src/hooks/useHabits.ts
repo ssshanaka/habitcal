@@ -85,8 +85,8 @@ export function useHabits(user: any, loading: boolean, addToast?: (message: stri
 
   const toggleCompletion = async (habitId: string, date: Date) => {
     const key = `${habitId}_${formatDateKey(date)}`;
-    const currentComp = completions[key];
-    const isNowCompleted = typeof currentComp === 'boolean' ? !currentComp : !currentComp?.completed;
+    const prevComp = completions[key];
+    const isNowCompleted = typeof prevComp === 'boolean' ? !prevComp : !prevComp?.completed;
     
     setCompletions(prev => ({ 
       ...prev, 
@@ -99,15 +99,15 @@ export function useHabits(user: any, loading: boolean, addToast?: (message: stri
       try {
         await habitsService.toggleCompletion(habitId, date, isNowCompleted);
       } catch (err) {
-        // Rollback
+        // Rollback to previous state
         setCompletions(prev => {
-           const restored = { ...prev };
-           if (isNowCompleted) {
-             delete restored[key];
-           } else {
-             restored[key] = { completed: true, timestamp: new Date().toISOString() }; // This is a bit hacky for rollback, but works for now
-           }
-           return restored;
+          const restored = { ...prev };
+          if (prevComp === undefined) {
+            delete restored[key];
+          } else {
+            restored[key] = prevComp;
+          }
+          return restored;
         });
         addToast?.('Failed to update completion', 'error');
       }
@@ -151,20 +151,22 @@ export function useHabits(user: any, loading: boolean, addToast?: (message: stri
 
   const setTodayForAll = async (completed: boolean) => {
     const todayDate = new Date();
-    const todayKey = formatDateKey(todayDate);
-    const updates: Record<string, boolean> = {};
-    habits.forEach(habit => {
-      updates[`${habit.id}_${todayKey}`] = completed;
-    });
-
     const prevCompletions = completions;
-    setCompletions(prev => ({ ...prev, ...updates }));
+    const todayKey = formatDateKey(todayDate);
+
+    // Optimistic update
+    const newCompletions: Record<string, any> = { ...prevCompletions };
+    habits.forEach(habit => {
+      const key = `${habit.id}_${todayKey}`;
+      newCompletions[key] = completed 
+        ? { completed: true, timestamp: new Date().toISOString() } 
+        : false;
+    });
+    setCompletions(newCompletions);
 
     if (user) {
       try {
-        await Promise.all(
-          habits.map(habit => habitsService.toggleCompletion(habit.id, todayDate, completed))
-        );
+        await habitsService.setCompletionsForDate(todayDate, completed);
       } catch (error) {
         setCompletions(prevCompletions);
         addToast?.('Failed to update today\'s habits', 'error');
