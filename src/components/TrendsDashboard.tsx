@@ -29,20 +29,53 @@ interface HabitStats {
 
 const TrendsDashboard: React.FC<TrendsDashboardProps> = ({ habits, completions, bestStreak }) => {
   
-  const getCompletionsInRange = (habitId: string, days: number) => {
-    let count = 0;
-    let checkDate = new Date();
+  const getOptimalWindow = (habit: Habit, completions: Record<string, any>) => {
+    const timestamps: string[] = [];
+    let totalCompletions = 0;
     
-    for (let i = 0; i < days; i++) {
-      const dateKey = formatDateKey(checkDate);
-      const completionKey = `${habitId}_${dateKey}`;
-      const comp = completions[completionKey];
-      if (comp && (typeof comp === 'boolean' ? comp : comp.completed)) {
-        count++;
+    Object.entries(completions).forEach(([key, value]) => {
+      if (key.startsWith(`${habit.id}_`)) {
+        const isCompleted = typeof value === 'boolean' ? value : value.completed;
+        if (isCompleted) {
+          totalCompletions++;
+          if (value.timestamp) {
+            timestamps.push(value.timestamp);
+          }
+        }
       }
-      checkDate = getPreviousDay(checkDate);
+    });
+
+    if (totalCompletions < 3) {
+      return habit.timeStart ? `Around ${habit.timeStart}` : 'Not enough data';
     }
-    return count;
+
+    const hourCounts: Record<number, number> = {};
+    timestamps.forEach(ts => {
+      const d = new Date(ts);
+      if (!isNaN(d.getTime())) {
+        const h = d.getHours();
+        hourCounts[h] = (hourCounts[h] || 0) + 1;
+      }
+    });
+
+    let maxHour = -1;
+    let maxCount = 0;
+    Object.entries(hourCounts).forEach(([hStr, count]) => {
+      const h = parseInt(hStr, 10);
+      if (count > maxCount) {
+        maxCount = count;
+        maxHour = h;
+      }
+    });
+
+    if (maxHour !== -1) {
+      const start = `${maxHour.toString().padStart(2, '0')}:00`;
+      const end = `${(maxHour + 1) % 24}`.padStart(2, '0') + ':00';
+      const percent = Math.round((maxCount / totalCompletions) * 100);
+      return `Peak: ${start}-${end} (${percent}%)`;
+    }
+
+    return habit.timeStart ? `Around ${habit.timeStart}` : 'Not enough data';
   };
 
   const habitStats = useMemo(() => {
@@ -50,10 +83,7 @@ const TrendsDashboard: React.FC<TrendsDashboardProps> = ({ habits, completions, 
       const completions7d = getCompletionsInRange(habit.id, 7);
       const completions30d = getCompletionsInRange(habit.id, 30);
 
-      let optimalWindow = 'Not enough data';
-      if (habit.timeStart) {
-        optimalWindow = `Around ${habit.timeStart}`;
-      }
+      const optimalWindow = getOptimalWindow(habit, completions);
 
       return {
         habitId: habit.id,
