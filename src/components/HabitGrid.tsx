@@ -63,6 +63,8 @@ const HabitGrid: React.FC<HabitGridProps> = ({
                  }`}>
                    {day.getDate()}
                  </div>
+                 {/* New: Date/Month Display */}
+                 <span className="text-[10px] text-gcal-muted uppercase mt-1">{day.toLocaleDateString('en-US', { month: 'short' })}</span>
                </div>
              );
            })}  

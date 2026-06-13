@@ -7,7 +7,7 @@ import { ToastType } from './useToast';
 
 export function useHabits(user: any, loading: boolean, addToast?: (message: string, type?: ToastType) => void) {
   const [habits, setHabits] = useState<Habit[]>([]);
-  const [completions, setCompletions] = useState<Record<string, boolean>>({});
+  const [completions, setCompletions] = useState<Record<string, boolean | { completed: boolean; timestamp: string }>>({});
   const [dataLoaded, setDataLoaded] = useState(false);
 
   // Default Data
@@ -85,15 +85,30 @@ export function useHabits(user: any, loading: boolean, addToast?: (message: stri
 
   const toggleCompletion = async (habitId: string, date: Date) => {
     const key = `${habitId}_${formatDateKey(date)}`;
-    const isNowCompleted = !completions[key];
+    const currentComp = completions[key];
+    const isNowCompleted = typeof currentComp === 'boolean' ? !currentComp : !currentComp?.completed;
     
-    setCompletions(prev => ({ ...prev, [key]: isNowCompleted }));
+    setCompletions(prev => ({ 
+      ...prev, 
+      [key]: isNowCompleted 
+        ? { completed: true, timestamp: new Date().toISOString() } 
+        : false 
+    }));
 
     if (user) {
       try {
         await habitsService.toggleCompletion(habitId, date, isNowCompleted);
       } catch (err) {
-        setCompletions(prev => ({ ...prev, [key]: !isNowCompleted }));
+        // Rollback
+        setCompletions(prev => {
+           const restored = { ...prev };
+           if (isNowCompleted) {
+             delete restored[key];
+           } else {
+             restored[key] = { completed: true, timestamp: new Date().toISOString() }; // This is a bit hacky for rollback, but works for now
+           }
+           return restored;
+        });
         addToast?.('Failed to update completion', 'error');
       }
     }
@@ -157,25 +172,29 @@ export function useHabits(user: any, loading: boolean, addToast?: (message: stri
     }
   };
 
-  const moveHabit = async (index: number, direction: 'up' | 'down') => {
-    if (index < 0 || (direction === 'up' && index === 0) || (direction === 'down' && index === habits.length - 1)) return;
-
-    const newHabits = [...habits];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    [newHabits[index], newHabits[targetIndex]] = [newHabits[targetIndex], newHabits[index]];
-    
-    const updatedHabits = newHabits.map((h, i) => ({ ...h, order: i }));
-    setHabits(updatedHabits);
+  const clearAllCompletions = async () => {
+    const prevCompletions = completions;
+    setCompletions({});
 
     if (user) {
       try {
-        await Promise.all([
-          habitsService.updateHabit({ ...updatedHabits[index], order: index }),
-          habitsService.updateHabit({ ...updatedHabits[targetIndex], order: targetIndex })
-        ]);
+        await habitsService.clearAllCompletions();
       } catch (err) {
-        addToast?.('Failed to persist habit order', 'error');
-        setHabits(habits);
+        setCompletions(prevCompletions);
+        addToast?.('Failed to clear completions', 'error');
+      }
+    }
+  };
+
+  const moveHabit = (index: number, direction: 'up' | 'down') => {
+    const newHabits = [...habits];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex >= 0 && targetIndex < newHabits.length) {
+      [newHabits[index], newHabits[targetIndex]] = [newHabits[targetIndex], newHabits[index]];
+      newHabits.forEach((h, i) => h.order = i);
+      setHabits(newHabits);
+      if (user) {
+         habitsService.reorderHabits(newHabits);
       }
     }
   };
@@ -190,6 +209,7 @@ export function useHabits(user: any, loading: boolean, addToast?: (message: stri
     saveHabit,
     deleteHabit,
     setTodayForAll,
-    moveHabit
+    moveHabit,
+    clearAllCompletions
   };
 }

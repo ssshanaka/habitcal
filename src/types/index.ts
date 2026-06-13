@@ -8,6 +8,16 @@ export interface Habit {
   color: string;
   category?: string;
   order: number;
+  goalCount?: number; // Monthly completion goal
+  created_at?: string;
+}
+
+export interface HabitPackage {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  habits: Omit<Habit, 'id' | 'user_id' | 'created_at'>[];
   created_at?: string;
 }
 
@@ -15,6 +25,7 @@ export interface Completion {
   habitId: string;
   date: string; // YYYY-MM-DD
   completed: boolean;
+  timestamp?: string; // ISO string or HH:mm
 }
 
 export type ViewMode = 'week'; // Can be extended to month later

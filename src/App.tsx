@@ -17,7 +17,8 @@ import {
   Target,
   Sparkles,
   BarChart3,
-  Search
+  Search,
+  RefreshCw
 } from 'lucide-react';
 import { 
   getWeekStart, 
@@ -61,7 +62,8 @@ function App() {
     saveHabit,
     deleteHabit,
     setTodayForAll,
-    moveHabit
+    moveHabit,
+    clearAllCompletions
   } = useHabits(user, loading, addToast);
 
   // --- State ---
@@ -76,17 +78,21 @@ function App() {
     return streakMap;
   }, [habits, completions]);
   
-  // Helper: Detailed Habit Statistics
-  const getHabitCompletionRate = (habitId: string, days: number = 30) => {
-    let completedCount = 0;
-    for (let i = 0; i < days; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        if (completions[`${habitId}_${formatDateKey(d)}`]) {
-            completedCount++;
-        }
-    }
-    return Math.round((completedCount / days) * 100);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleRefresh = async () => {
+      setIsSyncing(true);
+      try {
+          const fetchedHabits = await habitsService.fetchHabits();
+          const fetchedCompletions = await habitsService.fetchCompletions();
+          setHabits(fetchedHabits);
+          setCompletions(fetchedCompletions);
+          addToast('Data synchronized', 'success');
+      } catch (err) {
+          addToast('Failed to sync data', 'error');
+      } finally {
+          setIsSyncing(false);
+      }
   };
   
   // UI State
@@ -95,6 +101,7 @@ function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>(SortMode.TIME);
   const [todayFocusOnly, setTodayFocusOnly] = useState(false);
+  const [showHabitDetails, setShowHabitDetails] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -113,6 +120,7 @@ function App() {
   const [newHabitTimeEnd, setNewHabitTimeEnd] = useState('');
   const [newHabitColor, setNewHabitColor] = useState(colors[0]);
   const [newHabitCategory, setNewHabitCategory] = useState(categories[0]);
+  const [newHabitGoalCount, setNewHabitGoalCount] = useState<number | undefined>(undefined);
 
   // Refs for click outside
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -271,6 +279,7 @@ function App() {
         timeEnd: newHabitTimeEnd || undefined,
         color: newHabitColor,
         category: newHabitCategory,
+        goalCount: newHabitGoalCount,
       };
     } else {
       habitToSave = {
@@ -282,6 +291,7 @@ function App() {
         color: newHabitColor,
         category: newHabitCategory,
         order: habits.length,
+        goalCount: newHabitGoalCount,
       };
     }
 
@@ -313,6 +323,7 @@ function App() {
     setNewHabitTimeEnd(habit.timeEnd || '');
     setNewHabitColor(habit.color);
     setNewHabitCategory(habit.category || categories[0]);
+    setNewHabitGoalCount(habit.goalCount);
     setIsModalOpen(true);
   };
 
@@ -323,6 +334,7 @@ function App() {
     setNewHabitTimeEnd('');
     setNewHabitColor(colors[0]);
     setNewHabitCategory(categories[0]);
+    setNewHabitGoalCount(undefined);
     setEditingHabitId(null);
   };
 
@@ -380,16 +392,21 @@ function App() {
             </h2>
           </div>
 
-          {/* Search Input */}
-          <div className="relative max-w-xs ml-4 hidden md:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gcal-muted" size={18} />
-            <input 
-              type="text" 
-              placeholder="Search habits..." 
-              className="w-full bg-gcal-surface/50 border border-gcal-border rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-gcal-blue transition-all placeholder:text-gcal-muted/50"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
+          {/* Search & Refresh */}
+          <div className="flex items-center gap-2">
+            <div className="relative max-w-xs hidden md:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gcal-muted" size={18} />
+              <input 
+                type="text" 
+                placeholder="Search habits..." 
+                className="w-full bg-gcal-surface/50 border border-gcal-border rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-gcal-blue transition-all placeholder:text-gcal-muted/50"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Button variant="icon" onClick={handleRefresh} className={isSyncing ? 'animate-spin' : ''}>
+                <RefreshCw size={20} />
+            </Button>
           </div>
         </div>
 
@@ -512,9 +529,9 @@ function App() {
                </select>
             </div>
             <button
-              onClick={() => setTodayFocusOnly(prev => !prev)}
+              onClick={() => setShowHabitDetails(prev => !prev)}
               className={`w-full text-left flex items-center justify-between gap-2 glassmorphism p-3 rounded-2xl transition-all hover:shadow-md text-sm ${
-                todayFocusOnly ? 'ring-1 ring-gcal-blue' : ''
+                showHabitDetails ? 'ring-1 ring-gcal-blue' : ''
               }`}
               style={{
                 background: 'var(--glass-bg)',
@@ -524,9 +541,9 @@ function App() {
             >
               <span className="flex items-center gap-2 font-medium">
                 <Target size={14} />
-                Focus on today
+                Show details
               </span>
-              <span className="text-gcal-muted">{todayFocusOnly ? 'On' : 'Off'}</span>
+              <span className="text-gcal-muted">{showHabitDetails ? 'On' : 'Off'}</span>
             </button>
           </div>
 
@@ -559,6 +576,30 @@ function App() {
               </Button>
               <Button variant="ghost" className="text-xs px-2 py-2" onClick={() => setTodayForAllHabits(false)}>
                 Reset today
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="text-xs px-2 py-2 text-red-400 hover:text-red-500 hover:bg-red-500/10"
+                onClick={async () => {
+                  if (window.confirm('Are you sure you want to clear ALL completions? This cannot be undone.')) {
+                    await clearAllCompletions();
+                    addToast('All completions cleared', 'success');
+                  }
+                }}
+              >
+                Clear all
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="text-xs px-2 py-2 text-red-400 hover:text-red-500 hover:bg-red-500/10"
+                onClick={async () => {
+                  if (window.confirm('Are you sure you want to clear ALL completions? This cannot be undone.')) {
+                    await clearAllCompletions();
+                    addToast('All completions cleared', 'success');
+                  }
+                }}
+              >
+                Clear all
               </Button>
             </div>
           </div>
@@ -649,7 +690,7 @@ function App() {
                               {formatTime(habit.timeStart)} {habit.timeEnd && `- ${formatTime(habit.timeEnd)}`}
                             </div>
                           )}
-                          {habit.description && (
+                          {showHabitDetails && habit.description && (
                             <p className="text-xs text-gcal-muted mt-1">{habit.description}</p>
                           )}
                           

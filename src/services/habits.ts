@@ -27,7 +27,9 @@ export const habitsService = {
       timeStart: h.start_time?.slice(0, 5), // 'HH:mm:ss' -> 'HH:mm'
       timeEnd: h.end_time?.slice(0, 5),
       color: h.color,
-      order: 0, // Schema doesn't have order yet, default to 0
+      category: h.category,
+      order: h.order || 0,
+      goalCount: h.goal_count || null,
       created_at: h.created_at
     })) as Habit[];
   },
@@ -50,6 +52,7 @@ export const habitsService = {
       color: habit.color,
       category: habit.category || null,
       order: habit.order || 0,
+      goal_count: habit.goalCount || null,
       active: true
     }));
 
@@ -78,7 +81,8 @@ export const habitsService = {
         end_time: habit.timeEnd ? `${habit.timeEnd}:00` : null,
         color: habit.color,
         category: habit.category || null,
-        order: habit.order
+        order: habit.order,
+        goal_count: habit.goalCount || null
       })
       .eq('id', habit.id);
 
@@ -116,7 +120,7 @@ export const habitsService = {
     const habitIds = habits.map(h => h.id);
     const { data: logs, error } = await supabase
       .from('habit_logs')
-      .select('habit_id, date, completed')
+      .select('*')
       .in('habit_id', habitIds)
       .eq('completed', true);
 
@@ -125,11 +129,15 @@ export const habitsService = {
      return {};
     }
 
-    const completionsMap: Record<string, boolean> = {};
+    const completionsMap: Record<string, { completed: boolean; timestamp: string }> = {};
     logs.forEach((log: any) => {
       // log.date is YYYY-MM-DD
+      // log.created_at is ISO string
       const key = `${log.habit_id}_${log.date}`;
-      completionsMap[key] = true;
+      completionsMap[key] = { 
+        completed: log.completed,
+        timestamp: log.created_at || log.date 
+      };
     });
 
     return completionsMap;
@@ -154,5 +162,21 @@ export const habitsService = {
       });
       if (error) throw error;
     }
+  },
+
+  async clearAllCompletions() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data: habits } = await supabase.from('habits').select('id').eq('user_id', user.id);
+    if (!habits?.length) return;
+
+    const habitIds = habits.map(h => h.id);
+    const { error } = await supabase
+      .from('habit_logs')
+      .delete()
+      .in('habit_id', habitIds);
+
+    if (error) throw error;
   }
 };
