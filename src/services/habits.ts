@@ -29,6 +29,7 @@ export const habitsService = {
       color: h.color,
       category: h.category,
       order: h.order || 0,
+      goalCount: h.goal_count || null,
       created_at: h.created_at
     })) as Habit[];
   },
@@ -51,6 +52,7 @@ export const habitsService = {
       color: habit.color,
       category: habit.category || null,
       order: habit.order || 0,
+      goal_count: habit.goalCount || null,
       active: true
     }));
 
@@ -79,7 +81,8 @@ export const habitsService = {
         end_time: habit.timeEnd ? `${habit.timeEnd}:00` : null,
         color: habit.color,
         category: habit.category || null,
-        order: habit.order
+        order: habit.order,
+        goal_count: habit.goalCount || null
       })
       .eq('id', habit.id);
 

@@ -120,6 +120,7 @@ function App() {
   const [newHabitTimeEnd, setNewHabitTimeEnd] = useState('');
   const [newHabitColor, setNewHabitColor] = useState(colors[0]);
   const [newHabitCategory, setNewHabitCategory] = useState(categories[0]);
+  const [newHabitGoalCount, setNewHabitGoalCount] = useState<number | undefined>(undefined);
 
   // Refs for click outside
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -278,6 +279,7 @@ function App() {
         timeEnd: newHabitTimeEnd || undefined,
         color: newHabitColor,
         category: newHabitCategory,
+        goalCount: newHabitGoalCount,
       };
     } else {
       habitToSave = {
@@ -289,6 +291,7 @@ function App() {
         color: newHabitColor,
         category: newHabitCategory,
         order: habits.length,
+        goalCount: newHabitGoalCount,
       };
     }
 
@@ -320,6 +323,7 @@ function App() {
     setNewHabitTimeEnd(habit.timeEnd || '');
     setNewHabitColor(habit.color);
     setNewHabitCategory(habit.category || categories[0]);
+    setNewHabitGoalCount(habit.goalCount);
     setIsModalOpen(true);
   };
 
@@ -330,6 +334,7 @@ function App() {
     setNewHabitTimeEnd('');
     setNewHabitColor(colors[0]);
     setNewHabitCategory(categories[0]);
+    setNewHabitGoalCount(undefined);
     setEditingHabitId(null);
   };
 

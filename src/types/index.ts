@@ -8,6 +8,7 @@ export interface Habit {
   color: string;
   category?: string;
   order: number;
+  goalCount?: number; // Monthly completion goal
   created_at?: string;
 }
 
