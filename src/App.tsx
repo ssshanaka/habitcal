@@ -80,6 +80,10 @@ function App() {
   const [isNoticeOpen, setIsNoticeOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
+  useEffect(() => {
+    setIsSidebarOpen(window.innerWidth >= 1024);
+  }, []);
+  
   // Reminder State
   const [showAuthReminder, setShowAuthReminder] = useState(false);
   const [reminderDismissed, setReminderDismissed] = useState(false);
@@ -530,20 +534,22 @@ function App() {
         )}
 
         {/* --- Desktop Sidebar --- */}
-        <div className="hidden lg:block">
-          <Sidebar
-            openCreateModal={openCreateModal}
-            sortMode={sortMode}
-            setSortMode={setSortMode}
-            todayFocusOnly={todayFocusOnly}
-            setTodayFocusOnly={(val) => setTodayFocusOnly(val)}
-            completionStats={completionStats}
-            todayProgressPercent={todayProgressPercent}
-            weeklyProgressPercent={weeklyProgressPercent}
-            setTodayForAllHabits={setTodayForAllHabits}
-            heatmapData={heatmapData}
-          />
-        </div>
+        {isSidebarOpen && (
+          <div className="hidden lg:block">
+            <Sidebar
+              openCreateModal={openCreateModal}
+              sortMode={sortMode}
+              setSortMode={setSortMode}
+              todayFocusOnly={todayFocusOnly}
+              setTodayFocusOnly={(val) => setTodayFocusOnly(val)}
+              completionStats={completionStats}
+              todayProgressPercent={todayProgressPercent}
+              weeklyProgressPercent={weeklyProgressPercent}
+              setTodayForAllHabits={setTodayForAllHabits}
+              heatmapData={heatmapData}
+            />
+          </div>
+        )}
 
         {/* --- Grid View --- */}
         <HabitGrid
