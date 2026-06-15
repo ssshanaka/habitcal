@@ -13,7 +13,7 @@ export const AuthReminder: React.FC<AuthReminderProps> = ({ onLogin, onClose, vi
 
   return (
     <div 
-      className="fixed bottom-20 right-6 max-w-sm w-full glassmorphism shadow-xl rounded-3xl p-6 z-50 animate-slide-up border border-gcal-border"
+      className="fixed bottom-6 right-6 max-w-sm w-full glassmorphism shadow-xl rounded-3xl p-6 z-50 animate-slide-up border border-gcal-border"
       style={{
         background: 'var(--glass-bg)',
         backdropFilter: 'blur(20px)',
