@@ -6,7 +6,8 @@ import { Button } from './Button';
 import HabitRow from './HabitRow';
 
 interface HabitGridProps {
-  habits: Habit[];
+  allHabitsCount: number;
+  visibleHabits: Habit[];
   weekDays: Date[];
   isCompleted: (habitId: string, date: Date) => boolean;
   toggleCompletion: (habitId: string, date: Date) => void;
@@ -20,7 +21,8 @@ interface HabitGridProps {
 }
 
 const HabitGrid: React.FC<HabitGridProps> = ({
-  habits,
+  allHabitsCount,
+  visibleHabits,
   weekDays,
   isCompleted,
   toggleCompletion,
@@ -71,7 +73,7 @@ const HabitGrid: React.FC<HabitGridProps> = ({
 
       {/* Grid Body (Habits) */}
       <div className="flex-1 overflow-y-auto">
-         {habits.length === 0 ? (
+         {allHabitsCount === 0 ? (
            <div className="flex flex-col items-center justify-center h-full text-gcal-muted py-20">
              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gcal-blue/20 to-purple-500/20 flex items-center justify-center mb-4">
                <Plus size={48} className="text-gcal-muted" />
@@ -79,12 +81,19 @@ const HabitGrid: React.FC<HabitGridProps> = ({
              <p className="text-xl font-medium mb-2">No habits yet.</p>
              <Button variant="gradient" onClick={openCreateModal} className="mt-2 shadow-lg">Create your first habit</Button>
            </div>
+         ) : visibleHabits.length === 0 ? (
+           <div className="flex flex-col items-center justify-center h-full text-gcal-muted py-20 px-6 text-center">
+             <Target size={42} className="mb-3" />
+             <p className="text-lg font-semibold">Everything for today is complete 🎉</p>
+             <p className="text-sm mt-1">Turn off &quot;Focus on today&quot; to see all habits.</p>
+           </div>
          ) : (
-           habits.map((habit, index) => (
+           visibleHabits.map((habit, index) => (
              <HabitRow 
                key={habit.id}
                habit={habit}
                index={index}
+               totalHabits={visibleHabits.length}
                weekDays={weekDays}
                isCompleted={isCompleted}
                toggleCompletion={toggleCompletion}

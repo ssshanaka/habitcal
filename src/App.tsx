@@ -7,24 +7,18 @@ import {
   Menu, 
   Check, 
   Trash2,
-  Clock,
-  ArrowUp,
-  ArrowDown,
   User,
   Moon,
   Sun,
   LogOut,
-  Target,
-  Sparkles,
-  BarChart3,
-  Search
+  Search,
+  X
 } from 'lucide-react';
 import { 
   getWeekStart, 
   getWeekDays, 
   formatDateKey, 
   isSameDay, 
-  formatTime,
   generateId,
   colors,
   categories,
@@ -33,7 +27,6 @@ import {
 import { Habit, SortMode } from './types';
 import { Button } from './components/Button';
 import { Modal } from './components/Modal';
-import { Login } from './components/Login';
 import { useAuth } from './hooks/useAuth';
 import { useHabits } from './hooks/useHabits';
 import { AuthReminder } from './components/AuthReminder';
@@ -42,11 +35,9 @@ import { HeatmapCalendar } from './components/HeatmapCalendar';
 import { NoticeModal } from './components/NoticeModal';
 import { Toast } from './components/Toast';
 import { useToast } from './hooks/useToast';
-import { habitsService } from './services/habits';
-import { syncService } from './services/sync';
-
-// --- Default Data with UUID-like IDs ---
-// Removed DEFAULT_HABITS from here as it is now managed in useHabits hook.
+import HabitGrid from './components/HabitGrid';
+import Sidebar from './components/Sidebar';
+import HabitModal from './components/HabitModal';
 
 function App() {
   // --- Auth ---
@@ -77,19 +68,6 @@ function App() {
     return streakMap;
   }, [habits, completions]);
   
-  // Helper: Detailed Habit Statistics
-  const getHabitCompletionRate = (habitId: string, days: number = 30) => {
-    let completedCount = 0;
-    for (let i = 0; i < days; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        if (completions[`${habitId}_${formatDateKey(d)}`]) {
-            completedCount++;
-        }
-    }
-    return Math.round((completedCount / days) * 100);
-  };
-  
   // UI State
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -100,6 +78,7 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNoticeOpen, setIsNoticeOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   // Reminder State
   const [showAuthReminder, setShowAuthReminder] = useState(false);
@@ -164,9 +143,9 @@ function App() {
     Object.keys(completions).forEach(key => {
       if (completions[key]) {
         // key format is `${habitId}_${dateKey}`
-        const parts = key.split('_');
-        if (parts.length >= 2) {
-          const dateKey = parts[parts.length - 1];
+        const lastUnderscore = key.lastIndexOf('_');
+        if (lastUnderscore > 0) {
+          const dateKey = key.substring(lastUnderscore + 1);
           data[dateKey] = (data[dateKey] || 0) + 1;
         }
       }
@@ -391,7 +370,10 @@ function App() {
       }}>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-             <Button variant="icon"><Menu size={24} /></Button>
+             {/* Hamburger Menu – toggles mobile sidebar */}
+             <Button variant="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+               <Menu size={24} />
+             </Button>
              <div className="flex items-center gap-1">
                 <div className="w-8 h-8 bg-gcal-blue rounded-lg flex items-center justify-center text-white">
                   <Check size={20} strokeWidth={3} />
@@ -515,367 +497,97 @@ function App() {
       {/* --- Main Content --- */}
       <div className="flex flex-1 overflow-hidden">
         
-        {/* --- Sidebar (Create Button & Mini Details) --- */}
-        <aside className="w-64 p-6 hidden lg:flex flex-col gap-6 flex-shrink-0 transition-colors duration-300">
-          <div 
-             onClick={openCreateModal}
-             className="cursor-pointer bg-gradient-to-r from-gcal-blue to-purple-500 hover:from-gcal-blue-hover hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-3xl p-5 flex items-center gap-3 w-44 hover:scale-105 active:scale-95"
-          >
-             <Plus size={28} className="text-white" />
-             <span className="font-bold text-lg">Create</span>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <h3 className="text-xs font-bold text-gcal-muted uppercase tracking-wider mb-1">Filters & Sorting</h3>
-            <div className="flex items-center gap-2 glassmorphism p-3 rounded-2xl transition-all hover:shadow-md" style={{
-              background: 'var(--glass-bg)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-            }}>
-               <span className="text-sm font-medium">Sort by:</span>
-               <select 
-                  className="bg-transparent text-sm font-bold focus:outline-none bg-gradient-to-r from-gcal-blue to-purple-500 bg-clip-text text-transparent cursor-pointer"
-                  value={sortMode}
-                  onChange={(e) => setSortMode(e.target.value as SortMode)}
-               >
-                 <option value={SortMode.TIME}>Time</option>
-                 <option value={SortMode.MANUAL}>Manual</option>
-               </select>
-            </div>
-            <button
-              onClick={() => setTodayFocusOnly(prev => !prev)}
-              className={`w-full text-left flex items-center justify-between gap-2 glassmorphism p-3 rounded-2xl transition-all hover:shadow-md text-sm ${
-                todayFocusOnly ? 'ring-1 ring-gcal-blue' : ''
-              }`}
-              style={{
-                background: 'var(--glass-bg)',
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
-              }}
-            >
-              <span className="flex items-center gap-2 font-medium">
-                <Target size={14} />
-                Focus on today
-              </span>
-              <span className="text-gcal-muted">{todayFocusOnly ? 'On' : 'Off'}</span>
-            </button>
-          </div>
-
-          <div className="glassmorphism rounded-2xl p-4 space-y-3" style={{
-            background: 'var(--glass-bg)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-          }}>
-            <h3 className="text-xs font-bold text-gcal-muted uppercase tracking-wider">Momentum</h3>
-            <div>
-              <div className="flex items-center justify-between text-xs mb-1">
-                <span className="flex items-center gap-1"><Sparkles size={12} /> Today</span>
-                <span className="font-bold">{completionStats.todayCompleted}/{completionStats.todayTotal}</span>
+        {/* --- Mobile Sidebar Overlay --- */}
+        {isSidebarOpen && (
+          <div className="lg:hidden fixed inset-0 z-40">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in"
+              onClick={() => setIsSidebarOpen(false)}
+            />
+            {/* Sidebar Panel */}
+            <div className="absolute left-0 top-0 bottom-0 w-72 bg-gcal-bg-solid border-r border-gcal-border shadow-2xl animate-slide-right overflow-y-auto z-50">
+              <div className="flex items-center justify-between p-4 border-b border-gcal-border">
+                <span className="font-bold text-lg text-gcal-text">Menu</span>
+                <Button variant="icon" onClick={() => setIsSidebarOpen(false)}>
+                  <X size={20} />
+                </Button>
               </div>
-              <div className="w-full h-2 rounded-full bg-gcal-surface/40 overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-gcal-blue to-purple-500" style={{ width: `${todayProgressPercent}%` }} />
-              </div>
-            </div>
-            <div className="text-xs flex items-center justify-between">
-              <span className="flex items-center gap-1"><BarChart3 size={12} /> Week rate</span>
-              <span className="font-bold">{weeklyProgressPercent}%</span>
-            </div>
-            <div className="text-xs flex items-center justify-between">
-              <span>Best streak</span>
-              <span className="font-bold">{completionStats.bestStreak} day{completionStats.bestStreak === 1 ? '' : 's'}</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <Button variant="secondary" className="text-xs px-2 py-2" onClick={() => setTodayForAllHabits(true)}>
-                Complete today
-              </Button>
-              <Button variant="ghost" className="text-xs px-2 py-2" onClick={() => setTodayForAllHabits(false)}>
-                Reset today
-              </Button>
+              <Sidebar
+                openCreateModal={() => { openCreateModal(); setIsSidebarOpen(false); }}
+                sortMode={sortMode}
+                setSortMode={setSortMode}
+                todayFocusOnly={todayFocusOnly}
+                setTodayFocusOnly={(val) => setTodayFocusOnly(val)}
+                completionStats={completionStats}
+                todayProgressPercent={todayProgressPercent}
+                weeklyProgressPercent={weeklyProgressPercent}
+                setTodayForAllHabits={setTodayForAllHabits}
+                heatmapData={heatmapData}
+              />
             </div>
           </div>
+        )}
 
-          {/* Heatmap Calendar */}
-          <div className="mt-auto pt-6">
-            <h3 className="text-xs font-bold text-gcal-muted uppercase tracking-wider mb-3">Activity</h3>
-            <HeatmapCalendar heatmapData={heatmapData} />
-          </div>
-        </aside>
+        {/* --- Desktop Sidebar --- */}
+        <div className="hidden lg:block">
+          <Sidebar
+            openCreateModal={openCreateModal}
+            sortMode={sortMode}
+            setSortMode={setSortMode}
+            todayFocusOnly={todayFocusOnly}
+            setTodayFocusOnly={(val) => setTodayFocusOnly(val)}
+            completionStats={completionStats}
+            todayProgressPercent={todayProgressPercent}
+            weeklyProgressPercent={weeklyProgressPercent}
+            setTodayForAllHabits={setTodayForAllHabits}
+            heatmapData={heatmapData}
+          />
+        </div>
 
         {/* --- Grid View --- */}
-        <main className="flex-1 flex flex-col overflow-hidden relative z-0">
-          
-          {/* Grid Header (Days) */}
-          <div className="flex border-b border-gcal-border flex-shrink-0 transition-colors duration-300 glassmorphism" style={{
-            background: 'var(--glass-bg)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-          }}>
-             {/* Empty corner for habit names */}
-             <div className="w-48 md:w-64 flex-shrink-0 border-r border-gcal-border p-4 flex items-end">
-                <span className="text-xs font-bold text-gcal-muted uppercase tracking-wider">TIME</span>
-             </div>
-             
-             {/* Day Columns */}
-             <div className="flex-1 grid grid-cols-7">
-               {weekDays.map((day, i) => {
-                 const isToday = isSameDay(day, today);
-                 return (
-                   <div key={i} className="flex flex-col items-center justify-center py-4 border-r border-gcal-border last:border-r-0">
-                     <span className={`text-xs font-bold uppercase mb-2 tracking-wider ${isToday ? 'bg-gradient-to-r from-gcal-blue to-purple-500 bg-clip-text text-transparent' : 'text-gcal-muted'}`}>
-                       {day.toLocaleDateString('en-US', { weekday: 'short' })}
-                     </span>
-                     <div className={`w-12 h-12 flex items-center justify-center rounded-full text-2xl font-bold transition-all duration-200 ${
-                       isToday 
-                         ? 'bg-gradient-to-br from-gcal-blue to-purple-500 text-white shadow-lg scale-110' 
-                         : 'text-gcal-text hover:bg-gcal-surface/30'
-                     }`}>
-                       {day.getDate()}
-                     </div>
-                   </div>
-                 );
-               })}  
-             </div>
-          </div>
-
-          {/* Grid Body (Habits) */}
-          <div className="flex-1 overflow-y-auto">
-             {habits.length === 0 ? (
-               <div className="flex flex-col items-center justify-center h-full text-gcal-muted py-20">
-                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gcal-blue/20 to-purple-500/20 flex items-center justify-center mb-4">
-                   <Plus size={48} className="text-gcal-muted" />
-                 </div>
-                 <p className="text-xl font-medium mb-2">No habits yet.</p>
-                 <Button variant="gradient" onClick={openCreateModal} className="mt-2 shadow-lg">Create your first habit</Button>
-               </div>
-             ) : visibleHabits.length === 0 ? (
-               <div className="flex flex-col items-center justify-center h-full text-gcal-muted py-20 px-6 text-center">
-                 <Target size={42} className="mb-3" />
-                 <p className="text-lg font-semibold">Everything for today is complete 🎉</p>
-                 <p className="text-sm mt-1">Turn off &quot;Focus on today&quot; to see all habits.</p>
-               </div>
-             ) : (
-               visibleHabits.map((habit, index) => (
-                 <div key={habit.id} className="flex border-b border-gcal-border hover:bg-gcal-surface/50 group transition-all duration-200 min-h-[90px] hover:shadow-md">
-                    
-                    {/* Habit Info Column */}
-                    <div 
-                      className="w-48 md:w-64 flex-shrink-0 border-r border-gcal-border p-4 flex flex-col justify-center relative group/habit cursor-pointer hover:bg-gcal-surface/50 transition-all duration-200"
-                      onClick={() => openEditModal(habit)}
-                    >
-                       <div className="pr-8">
-                          <div className="flex items-center justify-between mb-1">
-                             <div className="flex flex-col">
-                               <span className="font-bold truncate text-lg" style={{ color: habit.color }}>{habit.title}</span>
-                               {habit.category && (
-                                 <span className="text-[10px] font-bold uppercase tracking-wider text-gcal-muted px-1.5 py-0.5 rounded bg-gcal-surface w-fit mt-0.5">
-                                   {habit.category}
-                                 </span>
-                               )}
-                             </div>
-                          </div>
-                          
-                          {(habit.timeStart || habit.timeEnd) && (
-                            <div className="text-xs text-gcal-muted flex items-center gap-1">
-                              <Clock size={10} />
-                              {formatTime(habit.timeStart)} {habit.timeEnd && `- ${formatTime(habit.timeEnd)}`}
-                            </div>
-                          )}
-                          {habit.description && (
-                            <p className="text-xs text-gcal-muted mt-1">{habit.description}</p>
-                          )}
-                          
-                          {/* Streak Counter */}
-                          {streaks[habit.id] > 0 && (
-                            <div className="flex items-center gap-1 text-sm mt-1">
-                              <span className="text-base">🔥</span>
-                              <span className="font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-                                {streaks[habit.id]} day{streaks[habit.id] !== 1 ? 's' : ''}
-                              </span>
-                            </div>
-                          )}
-                       </div>
-
-                       <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                          {sortMode === SortMode.MANUAL && !todayFocusOnly && (
-                            <>
-                              <button onClick={() => moveHabit(index, 'up')} disabled={index === 0} className="hover:text-gcal-text text-gcal-muted disabled:opacity-30 p-1"><ArrowUp size={12} /></button>
-                              <button onClick={() => moveHabit(index, 'down')} disabled={index === visibleHabits.length - 1} className="hover:text-gcal-text text-gcal-muted disabled:opacity-30 p-1"><ArrowDown size={12} /></button>
-                            </>
-                          )}
-                          <button onClick={() => handleDeleteHabit(habit.id)} className="hover:text-red-400 text-gcal-muted p-1" title="Delete"><Trash2 size={12} /></button>
-                       </div>
-                    </div>
-
-                    {/* Checkbox Columns */}
-                    <div className="flex-1 grid grid-cols-7">
-                      {weekDays.map((day, i) => {
-                        const completed = isCompleted(habit.id, day);
-                        const dayKey = formatDateKey(day);
-                        
-                        return (
-                          <div 
-                            key={`${habit.id}-${dayKey}`} 
-                            className="border-r border-gcal-border last:border-r-0 flex items-center justify-center relative"
-                          >
-                             <label className="cursor-pointer w-full h-full flex items-center justify-center hover:bg-gcal-muted/5 transition-all duration-200">
-                               <input 
-                                 type="checkbox" 
-                                 className="sr-only"
-                                 checked={completed}
-                                 onChange={() => toggleCompletion(habit.id, day)}
-                               />
-                               <div 
-                                 className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
-                                   completed 
-                                     ? `bg-opacity-30 border-transparent shadow-lg scale-110` 
-                                     : 'border-gcal-border hover:border-gcal-blue hover:scale-105'
-                                 }`}
-                                 style={{ 
-                                   backgroundColor: completed ? habit.color : 'transparent',
-                                   borderColor: completed ? habit.color : undefined,
-                                   boxShadow: completed ? `0 0 15px ${habit.color}40` : undefined
-                                 }}
-                               >
-                                 {completed && (
-                                   <Check size={24} style={{ color: 'var(--gcal-bg-solid)' }} strokeWidth={3} className="animate-in" />
-                                 )}
-                               </div>
-                             </label>
-                          </div>
-                        );
-                      })}
-                    </div>
-                 </div>
-               ))
-             )}
-             
-             {/* Mobile/Floating Add Button */}
-             <div className="lg:hidden absolute bottom-6 right-6">
-                <button 
-                  onClick={openCreateModal}
-                  className="w-16 h-16 bg-gradient-to-br from-gcal-blue to-purple-500 hover:from-gcal-blue-hover hover:to-purple-600 rounded-full shadow-2xl hover:shadow-xl flex items-center justify-center text-white border-4 border-white/20 transition-all duration-200 hover:scale-110 active:scale-95"
-                >
-                  <Plus size={32} className="text-white" strokeWidth={3} />
-                </button>
-             </div>
-          </div>
-
-        </main>
+        <HabitGrid
+          allHabitsCount={habits.length}
+          visibleHabits={visibleHabits}
+          weekDays={weekDays}
+          isCompleted={isCompleted}
+          toggleCompletion={toggleCompletion}
+          openEditModal={openEditModal}
+          handleDeleteHabit={handleDeleteHabit}
+          moveHabit={moveHabit}
+          sortMode={sortMode}
+          todayFocusOnly={todayFocusOnly}
+          streaks={streaks}
+          openCreateModal={openCreateModal}
+        />
       </div>
 
       {/* --- Add/Edit Habit Modal --- */}
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        title={editingHabitId ? "Edit habit" : "Add new habit"}
-      >
-         <form onSubmit={handleSaveHabit} className="flex flex-col gap-4">
-            <div>
-              <label className="block text-xs font-bold text-gcal-muted mb-2 uppercase tracking-wider">Title</label>
-              <input 
-                autoFocus
-                type="text" 
-                placeholder="e.g. Morning Meditation"
-                className="w-full bg-transparent border-b-2 border-gcal-border focus:border-gcal-blue px-3 py-3 outline-none text-xl font-medium text-gcal-text transition-all duration-200 placeholder:text-gcal-muted/50"
-                value={newHabitTitle}
-                onChange={e => setNewHabitTitle(e.target.value)}
-                style={{
-                  borderImage: newHabitTitle ? 'linear-gradient(to right, var(--gcal-blue), #a855f7) 1' : undefined
-                }}
-              />
-            </div>
+      <HabitModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        editingHabitId={editingHabitId}
+        onSave={handleSaveHabit}
+        onDelete={handleDeleteHabit}
+        newHabitTitle={newHabitTitle}
+        setNewHabitTitle={setNewHabitTitle}
+        newHabitDescription={newHabitDescription}
+        setNewHabitDescription={setNewHabitDescription}
+        newHabitTimeStart={newHabitTimeStart}
+        setNewHabitTimeStart={setNewHabitTimeStart}
+        newHabitTimeEnd={newHabitTimeEnd}
+        setNewHabitTimeEnd={setNewHabitTimeEnd}
+        newHabitColor={newHabitColor}
+        setNewHabitColor={setNewHabitColor}
+        newHabitCategory={newHabitCategory}
+        setNewHabitCategory={setNewHabitCategory}
+        colors={colors}
+        categories={categories}
+      />
 
-            <div>
-              <label className="block text-xs font-bold text-gcal-muted mb-2 uppercase tracking-wider">Description (optional)</label>
-              <textarea
-                rows={3}
-                placeholder="What does success look like for this habit?"
-                className="w-full bg-transparent border border-gcal-border focus:border-gcal-blue rounded-xl px-3 py-2 outline-none text-sm text-gcal-text transition-all duration-200 placeholder:text-gcal-muted/60 resize-none"
-                value={newHabitDescription}
-                onChange={e => setNewHabitDescription(e.target.value)}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gcal-muted mb-2 uppercase tracking-wider">Start Time</label>
-                <input 
-                  type="time" 
-                  className="w-full bg-transparent border-b-2 border-gcal-border focus:border-gcal-blue px-3 py-2 outline-none text-gcal-text transition-all duration-200 font-medium"
-                  value={newHabitTimeStart}
-                  onChange={e => setNewHabitTimeStart(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gcal-muted mb-2 uppercase tracking-wider">End Time</label>
-                <input 
-                  type="time" 
-                  className="w-full bg-transparent border-b-2 border-gcal-border focus:border-gcal-blue px-3 py-2 outline-none text-gcal-text transition-all duration-200 font-medium"
-                  value={newHabitTimeEnd}
-                  onChange={e => setNewHabitTimeEnd(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div>
-               <label className="block text-xs font-bold text-gcal-muted mb-3 uppercase tracking-wider">Category</label>
-               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                 {categories.map(cat => (
-                   <button
-                     type="button"
-                     key={cat}
-                     onClick={() => setNewHabitCategory(cat)}
-                     className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 border ${
-                       newHabitCategory === cat 
-                         ? 'bg-gcal-blue text-white border-gcal-blue shadow-md scale-105' 
-                         : 'bg-transparent border-gcal-border text-gcal-text hover:border-gcal-blue hover:bg-gcal-surface/50'
-                     }`}
-                   >
-                     {cat}
-                   </button>
-                 ))}
-               </div>
-            </div>
-
-            <div>
-               <label className="block text-xs font-bold text-gcal-muted mb-3 uppercase tracking-wider">Color</label>
-               <div className="flex gap-3 flex-wrap">
-                 {colors.map(c => (
-                   <button
-                     type="button"
-                     key={c}
-                     onClick={() => setNewHabitColor(c)}
-                     className={`w-10 h-10 rounded-full transition-all duration-200 shadow-md hover:shadow-lg ${
-                       newHabitColor === c 
-                         ? 'scale-125 ring-4 ring-gcal-blue ring-offset-2 ring-offset-transparent' 
-                         : 'hover:scale-110'
-                     }`}
-                     style={{ backgroundColor: c }}
-                   />
-                 ))}
-               </div>
-            </div>
-
-            <div className="flex justify-between items-center mt-6 pt-5 border-t border-gcal-border/50">
-               {editingHabitId ? (
-                 <Button type="button" variant="ghost" onClick={() => handleDeleteHabit(editingHabitId)} className="text-red-400 hover:text-red-500 hover:bg-red-500/10 px-2 sm:px-4 font-medium">
-                    <Trash2 size={20} /> <span className="hidden sm:inline ml-2">Delete</span>
-                 </Button>
-               ) : <div></div>}
-               
-               <div className="flex gap-3">
-                 <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                 <Button type="submit" variant="gradient" className="px-8 shadow-lg">
-                    {editingHabitId ? 'Update' : 'Save'}
-                 </Button>
-               </div>
-            </div>
-         </form>
-      </Modal>
-
-      {/* Login Modal */}
+      {/* Login Modal – uses ProfileLoginPopup for consistent Google + Email options */}
       <Modal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} title="Sign In">
-          <Login />
+          <ProfileLoginPopup onClose={() => setIsLoginModalOpen(false)} />
       </Modal>
 
       {/* Guest Mode Reminder */}

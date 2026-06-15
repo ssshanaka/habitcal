@@ -188,6 +188,19 @@ body {
   animation: scaleIn 0.2s ease-out;
 }
 
+@keyframes slideInRight {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 10px;

@@ -41,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   heatmapData
 }) => {
   return (
-    <aside className="w-64 p-6 hidden lg:flex flex-col gap-6 flex-shrink-0 transition-colors duration-300">
+    <aside className="w-64 p-6 flex flex-col gap-6 flex-shrink-0 transition-colors duration-300">
       <div 
          onClick={openCreateModal}
          className="cursor-pointer bg-gradient-to-r from-gcal-blue to-purple-500 hover:from-gcal-blue-hover hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-3xl p-5 flex items-center gap-3 w-44 hover:scale-105 active:scale-95"
@@ -59,7 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         }}>
            <span className="text-sm font-medium">Sort by:</span>
            <select 
-              className="bg-transparent text-sm font-bold focus:outline-none bg-gradient-to-r from-gcal-blue to-purple-500 bg-clip-text text-transparent cursor-pointer"
+              className="bg-transparent text-sm font-bold focus:outline-none text-gcal-blue cursor-pointer"
               value={sortMode}
               onChange={(e) => setSortMode(e.target.value as SortMode)}
            >

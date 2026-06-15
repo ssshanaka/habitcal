@@ -6,6 +6,7 @@ import { formatTime } from '../utils';
 interface HabitRowProps {
   habit: Habit;
   index: number;
+  totalHabits: number;
   weekDays: Date[];
   isCompleted: (habitId: string, date: Date) => boolean;
   toggleCompletion: (habitId: string, date: Date) => void;
@@ -20,6 +21,7 @@ interface HabitRowProps {
 const HabitRow: React.FC<HabitRowProps> = ({
   habit,
   index,
+  totalHabits,
   weekDays,
   isCompleted,
   toggleCompletion,
@@ -74,7 +76,7 @@ const HabitRow: React.FC<HabitRowProps> = ({
             {sortMode === SortMode.MANUAL && !todayFocusOnly && (
               <>
                 <button onClick={() => moveHabit(index, 'up')} disabled={index === 0} className="hover:text-gcal-text text-gcal-muted disabled:opacity-30 p-1"><ArrowUp size={12} /></button>
-                <button onClick={() => moveHabit(index, 'down')} disabled={index === 0} className="hover:text-gcal-text text-gcal-muted disabled:opacity-30 p-1"><ArrowDown size={12} /></button>
+                <button onClick={() => moveHabit(index, 'down')} disabled={index === totalHabits - 1} className="hover:text-gcal-text text-gcal-muted disabled:opacity-30 p-1"><ArrowDown size={12} /></button>
               </>
             )}
             <button onClick={() => handleDeleteHabit(habit.id)} className="hover:text-red-400 text-gcal-muted p-1" title="Delete"><Trash2 size={12} /></button>
