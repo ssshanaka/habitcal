@@ -1,11 +1,13 @@
-import React from 'react';
-import { Check, Trash2, Clock, ArrowUp, ArrowDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, Trash2, Clock, ArrowUp, ArrowDown, Timer } from 'lucide-react';
 import { Habit, SortMode } from '../types';
 import { formatTime } from '../utils';
+import HabitTimer from './HabitTimer';
 
 interface HabitRowProps {
   habit: Habit;
   index: number;
+  totalHabits: number;
   weekDays: Date[];
   isCompleted: (habitId: string, date: Date) => boolean;
   toggleCompletion: (habitId: string, date: Date) => void;
@@ -15,11 +17,13 @@ interface HabitRowProps {
   sortMode: SortMode;
   todayFocusOnly: boolean;
   streak: number;
+  onTimerStop: (habitId: string, minutes: number) => void;
 }
 
 const HabitRow: React.FC<HabitRowProps> = ({
   habit,
   index,
+  totalHabits,
   weekDays,
   isCompleted,
   toggleCompletion,
@@ -28,13 +32,16 @@ const HabitRow: React.FC<HabitRowProps> = ({
   moveHabit,
   sortMode,
   todayFocusOnly,
-  streak
+  streak,
+  onTimerStop
 }) => {
+  const [isTimerActive, setIsTimerActive] = useState(false);
+
   return (
     <div className="flex border-b border-gcal-border hover:bg-gcal-surface/50 group transition-all duration-200 min-h-[90px] hover:shadow-md">
       {/* Habit Info Column */}
       <div 
-        className="w-48 md:w-64 flex-shrink-0 border-r border-gcal-border p-4 flex flex-col justify-center relative group/habit cursor-pointer hover:bg-gcal-surface/50 transition-all duration-200"
+        className="w-48 md:w-72 flex-shrink-0 border-r border-gcal-border p-4 flex flex-col justify-center relative group/habit cursor-pointer hover:bg-gcal-surface/50 transition-all duration-200"
         onClick={() => openEditModal(habit)}
       >
          <div className="pr-8">
@@ -56,25 +63,45 @@ const HabitRow: React.FC<HabitRowProps> = ({
               </div>
             )}
             {habit.description && (
-              <p className="text-xs text-gcal-muted mt-1">{habit.description}</p>
+              <p className="text-xs text-gcal-muted mt-1 line-clamp-1">{habit.description}</p>
             )}
             
-            {/* Streak Counter */}
-            {streak > 0 && (
-              <div className="flex items-center gap-1 text-sm mt-1">
-                <span className="text-base">🔥</span>
-                <span className="font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-                  {streak} day{streak !== 1 ? 's' : ''}
-                </span>
-              </div>
-            )}
+            <div className="flex items-center gap-3 mt-2">
+              {/* Streak Counter */}
+              {streak > 0 && (
+                <div className="flex items-center gap-1 text-xs">
+                  <span className="text-sm">🔥</span>
+                  <span className="font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
+                    {streak} day{streak !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              )}
+
+              {/* Duration Display */}
+              {habit.duration_minutes !== undefined && habit.duration_minutes > 0 && (
+                <div className="flex items-center gap-1 text-xs text-gcal-muted">
+                  <Timer size={12} />
+                  <span className="font-medium">{habit.duration_minutes}m</span>
+                </div>
+              )}
+            </div>
          </div>
 
          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-col items-center gap-0.5 mb-2">
+                <HabitTimer 
+                  onStop={(mins) => {
+                    onTimerStop(habit.id, mins);
+                    setIsTimerActive(false);
+                  }}
+                  onCancel={() => setIsTimerActive(false)}
+                />
+            </div>
+
             {sortMode === SortMode.MANUAL && !todayFocusOnly && (
               <>
                 <button onClick={() => moveHabit(index, 'up')} disabled={index === 0} className="hover:text-gcal-text text-gcal-muted disabled:opacity-30 p-1"><ArrowUp size={12} /></button>
-                <button onClick={() => moveHabit(index, 'down')} disabled={index === 0} className="hover:text-gcal-text text-gcal-muted disabled:opacity-30 p-1"><ArrowDown size={12} /></button>
+                <button onClick={() => moveHabit(index, 'down')} disabled={index === totalHabits - 1} className="hover:text-gcal-text text-gcal-muted disabled:opacity-30 p-1"><ArrowDown size={12} /></button>
               </>
             )}
             <button onClick={() => handleDeleteHabit(habit.id)} className="hover:text-red-400 text-gcal-muted p-1" title="Delete"><Trash2 size={12} /></button>

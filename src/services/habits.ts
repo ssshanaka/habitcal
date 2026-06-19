@@ -30,6 +30,7 @@ export const habitsService = {
       category: h.category,
       order: h.order || 0,
       goalCount: h.goal_count || null,
+      duration_minutes: h.duration_minutes || 0,
       created_at: h.created_at
     })) as Habit[];
   },
@@ -53,6 +54,7 @@ export const habitsService = {
       category: habit.category || null,
       order: habit.order || 0,
       goal_count: habit.goalCount || null,
+      duration_minutes: habit.duration_minutes || 0,
       active: true
     }));
 
@@ -82,7 +84,8 @@ export const habitsService = {
         color: habit.color,
         category: habit.category || null,
         order: habit.order,
-        goal_count: habit.goalCount || null
+        goal_count: habit.goalCount || null,
+        duration_minutes: habit.duration_minutes || 0
       })
       .eq('id', habit.id);
 

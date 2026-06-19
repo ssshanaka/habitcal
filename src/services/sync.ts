@@ -1,5 +1,5 @@
 import { habitsService } from './habits';
-import { Habit } from '@/types';
+import { Habit, Completion } from '@/types';
 import { formatDateKey } from '@/utils';
 
 export const syncService = {
@@ -16,9 +16,13 @@ export const syncService = {
       const completionsToSync: Completion[] = [];
       Object.keys(localCompletions).forEach(key => {
         if (localCompletions[key]) {
-          const [habitId, date] = key.split('_');
-          if (habitId && date) {
-            completionsToSync.push({ habitId, date, completed: true });
+          const lastUnderscore = key.lastIndexOf('_');
+          if (lastUnderscore > 0) {
+            const habitId = key.substring(0, lastUnderscore);
+            const date = key.substring(lastUnderscore + 1);
+            if (habitId && date) {
+              completionsToSync.push({ habitId, date, completed: true });
+            }
           }
         }
       });
