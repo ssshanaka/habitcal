@@ -28,6 +28,21 @@ export interface Completion {
   timestamp?: string; // ISO string or HH:mm
 }
 
+export interface Circle {
+  id: string;
+  name: string;
+  description?: string;
+  creator_id: string;
+  created_at: string;
+}
+
+export interface CircleMember {
+  circle_id: string;
+  user_id: string;
+  joined_at: string;
+  role: 'admin' | 'member';
+}
+
 export type ViewMode = 'week'; // Can be extended to month later
 
 export enum SortMode {

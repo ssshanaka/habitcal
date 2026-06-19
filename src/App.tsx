@@ -18,7 +18,8 @@ import {
   Sparkles,
   BarChart3,
   Search,
-  RefreshCw
+  RefreshCw,
+  Zap
 } from 'lucide-react';
 import { 
   getWeekStart, 
@@ -44,6 +45,7 @@ import { Toast } from './components/Toast';
 import { useToast } from './hooks/useToast';
 import { habitsService } from './services/habits';
 import { syncService } from './services/sync';
+import FocusMode from './components/FocusMode';
 
 // --- Default Data with UUID-like IDs ---
 // Removed DEFAULT_HABITS from here as it is now managed in useHabits hook.
@@ -101,6 +103,7 @@ function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>(SortMode.TIME);
   const [todayFocusOnly, setTodayFocusOnly] = useState(false);
+  const [focusModeActive, setFocusModeActive] = useState(false);
   const [showHabitDetails, setShowHabitDetails] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -394,6 +397,14 @@ function App() {
 
           {/* Search & Refresh */}
           <div className="flex items-center gap-2">
+            <Button 
+              variant={focusModeActive ? "gradient" : "secondary"} 
+              onClick={() => setFocusModeActive(!focusModeActive)}
+              className="hidden md:flex items-center gap-2 px-4"
+            >
+              <Zap size={18} className={focusModeActive ? "text-white" : "text-gcal-blue"} />
+              <span>{focusModeActive ? "Exit Focus" : "Focus Mode"}</span>
+            </Button>
             <div className="relative max-w-xs hidden md:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gcal-muted" size={18} />
               <input 
