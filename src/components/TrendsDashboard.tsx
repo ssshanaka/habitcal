@@ -6,10 +6,17 @@ import {
   BarChart3, 
   CheckCircle2, 
   Clock,
-  Flame
+  Flame,
+  Sparkles,
+  CloudSun,
+  Sun,
+  Cloud,
+  CloudRain,
+  Wind
 } from 'lucide-react';
 import { Habit, Completion } from '../types';
 import { formatDateKey, getPreviousDay } from '../utils';
+import { useWeather } from '../hooks/useWeather';
 
 interface TrendsDashboardProps {
   habits: Habit[];
@@ -28,6 +35,7 @@ interface HabitStats {
 }
 
 const TrendsDashboard: React.FC<TrendsDashboardProps> = ({ habits, completions, bestStreak }) => {
+  const { weather, loading: weatherLoading } = useWeather();
   
   const getOptimalWindow = (habit: Habit, completions: Record<string, any>) => {
     const timestamps: string[] = [];
@@ -223,7 +231,50 @@ const TrendsDashboard: React.FC<TrendsDashboardProps> = ({ habits, completions, 
             AI-Powered
           </span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* --- Weather Insight Card --- */}
+          <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all group">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+                  {weatherLoading ? (
+                    <div className="w-5 h-5 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
+                  ) : weather ? (
+                    weather.isRainy ? <CloudRain size={20} /> :
+                    weather.isSunny ? <Sun size={20} /> :
+                    weather.isCloudy ? <Cloud size={20} /> :
+                    weather.isWindy ? <Wind size={20} /> : <CloudSun size={20} />
+                  ) : <CloudSun size={20} />}
+                </div>
+                <div>
+                  <div className="font-bold text-gcal-text text-sm">Weather Insight</div>
+                  <div className="text-[10px] text-gcal-muted uppercase tracking-tighter">Local Context</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {weather && (
+                <>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-bold text-gcal-text">{weather.temp}°C</span>
+                    <span className="text-sm text-gcal-muted">{weather.condition}</span>
+                  </div>
+                  <div className="text-xs text-blue-400 font-medium leading-relaxed bg-blue-500/5 p-3 rounded-2xl border border-blue-500/10">
+                    {weather.isRainy && "It's raining! Time for some indoor routines?"}
+                    {weather.isSunny && "Beautiful sunny day! Perfect for outdoor activities."}
+                    {weather.isCloudy && "A bit cloudy today. Keep your momentum going!"}
+                    {weather.isWindy && "A bit windy! Stay cozy and focused."}
+                    {!weather.isRainy && !weather.isSunny && !weather.isCloudy && !weather.isWindy && "Enjoy your day and stay consistent!"}
+                  </div>
+                </>
+              )}
+              {!weather && !weatherLoading && (
+                <div className="text-xs text-gcal-muted italic">Unable to load weather context.</div>
+              )}
+            </div>
+          </div>
+
           {habitStats.map(stat => (
             <div key={stat.habitId} className="bg-gradient-to-br from-purple-500/5 to-blue-500/5 border border-purple-500/20 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all group">
                <div className="flex items-start justify-between mb-4">
