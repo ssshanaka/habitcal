@@ -7,11 +7,13 @@ export interface Habit {
   timeEnd?: string; // HH:mm format
   color: string;
   category?: string;
+  dependencyId?: string; // ID of the habit this one depends on
   order: number;
   goalCount?: number; // Monthly completion goal
   duration_minutes?: number;
   created_at?: string;
 }
+
 
 export interface HabitPackage {
   id: string;

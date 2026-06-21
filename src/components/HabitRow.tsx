@@ -18,6 +18,7 @@ interface HabitRowProps {
   todayFocusOnly: boolean;
   streak: number;
   onTimerStop: (habitId: string, minutes: number) => void;
+  allHabits: Habit[];
 }
 
 const HabitRow: React.FC<HabitRowProps> = ({
@@ -33,9 +34,12 @@ const HabitRow: React.FC<HabitRowProps> = ({
   sortMode,
   todayFocusOnly,
   streak,
-  onTimerStop
+  onTimerStop,
+  allHabits
 }) => {
   const [isTimerActive, setIsTimerActive] = useState(false);
+
+  const dependencyHabit = allHabits.find(h => h.id === habit.dependencyId);
 
   return (
     <div className="flex border-b border-gcal-border hover:bg-gcal-surface/50 group transition-all duration-200 min-h-[90px] hover:shadow-md">
@@ -48,11 +52,18 @@ const HabitRow: React.FC<HabitRowProps> = ({
             <div className="flex items-center justify-between mb-1">
                <div className="flex flex-col">
                  <span className="font-bold truncate text-lg" style={{ color: habit.color }}>{habit.title}</span>
-                 {habit.category && (
-                   <span className="text-[10px] font-bold uppercase tracking-wider text-gcal-muted px-1.5 py-0.5 rounded bg-gcal-surface w-fit mt-0.5">
-                     {habit.category}
-                   </span>
-                 )}
+                 <div className="flex flex-wrap gap-1 mt-0.5">
+                   {habit.category && (
+                     <span className="text-[10px] font-bold uppercase tracking-wider text-gcal-muted px-1.5 py-0.5 rounded bg-gcal-surface w-fit">
+                       {habit.category}
+                     </span>
+                   )}
+                   {dependencyHabit && (
+                     <span className="text-[10px] font-bold uppercase tracking-wider text-gcal-blue px-1.5 py-0.5 rounded bg-gcal-blue/10 w-fit flex items-center gap-1">
+                       <Target size={8} /> {dependencyHabit.title}
+                     </span>
+                   )}
+                 </div>
                </div>
             </div>
             
@@ -113,10 +124,15 @@ const HabitRow: React.FC<HabitRowProps> = ({
         {weekDays.map((day, i) => {
           const completed = isCompleted(habit.id, day);
           
+          const isDependencyCompleted = dependencyHabit 
+            ? isCompleted(dependencyHabit.id, day) 
+            : true;
+          const isDimmed = dependencyHabit && !isDependencyCompleted;
+          
           return (
             <div 
               key={`${habit.id}-${i}`} 
-              className="border-r border-gcal-border last:border-r-0 flex items-center justify-center relative"
+              className={`border-r border-gcal-border last:border-r-0 flex items-center justify-center relative ${isDimmed ? 'opacity-40 grayscale-[0.5]' : ''}`}
             >
                <label className="cursor-pointer w-full h-full flex items-center justify-center hover:bg-gcal-muted/5 transition-all duration-200">
                  <input 

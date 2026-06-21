@@ -28,6 +28,7 @@ export const habitsService = {
       timeEnd: h.end_time?.slice(0, 5),
       color: h.color,
       category: h.category,
+      dependencyId: h.dependency_id,
       order: h.order || 0,
       goalCount: h.goal_count || null,
       duration_minutes: h.duration_minutes || 0,
@@ -52,6 +53,7 @@ export const habitsService = {
       end_time: habit.timeEnd ? `${habit.timeEnd}:00` : null,
       color: habit.color,
       category: habit.category || null,
+      dependency_id: habit.dependencyId || null,
       order: habit.order || 0,
       goal_count: habit.goalCount || null,
       duration_minutes: habit.duration_minutes || 0,
@@ -83,6 +85,7 @@ export const habitsService = {
         end_time: habit.timeEnd ? `${habit.timeEnd}:00` : null,
         color: habit.color,
         category: habit.category || null,
+        dependency_id: habit.dependencyId || null,
         order: habit.order,
         goal_count: habit.goalCount || null,
         duration_minutes: habit.duration_minutes || 0

@@ -112,6 +112,7 @@ const HabitGrid: React.FC<HabitGridProps> = ({
                todayFocusOnly={todayFocusOnly}
                streak={streaks[habit.id] || 0}
                onTimerStop={handleTimerStop}
+               allHabits={visibleHabits}
              />
            ))
          )}

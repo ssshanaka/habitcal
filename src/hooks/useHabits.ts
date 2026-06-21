@@ -84,6 +84,22 @@ export function useHabits(user: any, loading: boolean, addToast?: (message: stri
   }, [user, loading]);
 
   const toggleCompletion = async (habitId: string, date: Date) => {
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit) return;
+
+    // Dependency Check
+    if (habit.dependencyId) {
+      const dependencyHabit = habits.find(h => h.id === habit.dependencyId);
+      if (dependencyHabit) {
+        const depKey = `${habit.dependencyId}_${formatDateKey(date)}`;
+        const isDepCompleted = !!completions[depKey];
+        if (!isDepCompleted) {
+          addToast?.(`Please complete "${dependencyHabit.title}" first!`, 'error');
+          return;
+        }
+      }
+    }
+
     const key = `${habitId}_${formatDateKey(date)}`;
     const prevComp = completions[key];
     const isNowCompleted = typeof prevComp === 'boolean' ? !prevComp : !prevComp?.completed;

@@ -21,8 +21,11 @@ interface HabitModalProps {
   setNewHabitColor: (val: string) => void;
   newHabitCategory: string;
   setNewHabitCategory: (val: string) => void;
+  newHabitDependencyId: string;
+  setNewHabitDependencyId: (val: string) => void;
   colors: string[];
   categories: string[];
+  allHabits: Habit[];
 }
 
 const HabitModal: React.FC<HabitModalProps> = ({
@@ -43,8 +46,11 @@ const HabitModal: React.FC<HabitModalProps> = ({
   setNewHabitColor,
   newHabitCategory,
   setNewHabitCategory,
+  newHabitDependencyId,
+  setNewHabitDependencyId,
   colors,
-  categories
+  categories,
+  allHabits
 }) => {
   return (
     <Modal 
@@ -118,6 +124,23 @@ const HabitModal: React.FC<HabitModalProps> = ({
                  </button>
                ))}
              </div>
+          </div>
+
+          <div>
+             <label className="block text-xs font-bold text-gcal-muted mb-2 uppercase tracking-wider">Depends On (Habit Chain)</label>
+             <select 
+               className="w-full bg-transparent border-b-2 border-gcal-border focus:border-gcal-blue px-3 py-3 outline-none text-sm text-gcal-text transition-all duration-200 font-medium"
+               value={newHabitDependencyId}
+               onChange={e => setNewHabitDependencyId(e.target.value)}
+             >
+               <option value="">No dependency</option>
+               {allHabits
+                 .filter(h => h.id !== editingHabitId)
+                 .map(h => (
+                   <option key={h.id} value={h.id}>{h.title}</option>
+                 ))
+               }
+             </select>
           </div>
 
           <div>

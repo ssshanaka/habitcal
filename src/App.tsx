@@ -126,6 +126,7 @@ function App() {
   const [newHabitTimeEnd, setNewHabitTimeEnd] = useState('');
   const [newHabitColor, setNewHabitColor] = useState(colors[0]);
   const [newHabitCategory, setNewHabitCategory] = useState(categories[0]);
+  const [newHabitDependencyId, setNewHabitDependencyId] = useState('');
   const [newHabitGoalCount, setNewHabitGoalCount] = useState<number | undefined>(undefined);
 
   // Refs for click outside
@@ -314,6 +315,7 @@ function App() {
         timeEnd: newHabitTimeEnd || undefined,
         color: newHabitColor,
         category: newHabitCategory,
+        dependencyId: newHabitDependencyId || undefined,
         goalCount: newHabitGoalCount,
       };
     } else {
@@ -325,6 +327,7 @@ function App() {
         timeEnd: newHabitTimeEnd || undefined,
         color: newHabitColor,
         category: newHabitCategory,
+        dependencyId: newHabitDependencyId || undefined,
         order: habits.length,
         goalCount: newHabitGoalCount,
       };
@@ -358,6 +361,7 @@ function App() {
     setNewHabitTimeEnd(habit.timeEnd || '');
     setNewHabitColor(habit.color);
     setNewHabitCategory(habit.category || categories[0]);
+    setNewHabitDependencyId(habit.dependencyId || '');
     setNewHabitGoalCount(habit.goalCount);
     setIsModalOpen(true);
   };
@@ -369,6 +373,7 @@ function App() {
     setNewHabitTimeEnd('');
     setNewHabitColor(colors[0]);
     setNewHabitCategory(categories[0]);
+    setNewHabitDependencyId('');
     setNewHabitGoalCount(undefined);
     setEditingHabitId(null);
   };
@@ -642,8 +647,11 @@ function App() {
         setNewHabitColor={setNewHabitColor}
         newHabitCategory={newHabitCategory}
         setNewHabitCategory={setNewHabitCategory}
+        newHabitDependencyId={newHabitDependencyId}
+        setNewHabitDependencyId={setNewHabitDependencyId}
         colors={colors}
         categories={categories}
+        allHabits={habits}
       />
 
       <Modal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} title="Sign In">
