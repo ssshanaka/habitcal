@@ -17,6 +17,7 @@ import {
 import { Habit, Completion } from '../types';
 import { formatDateKey, getPreviousDay } from '../utils';
 import { useWeather } from '../hooks/useWeather';
+import SuccessForecastWidget from './SuccessForecastWidget';
 
 interface TrendsDashboardProps {
   habits: Habit[];
@@ -232,6 +233,8 @@ const TrendsDashboard: React.FC<TrendsDashboardProps> = ({ habits, completions, 
           </span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <SuccessForecastWidget habits={habits} completions={completions} weather={weather} />
+
           {/* --- Weather Insight Card --- */}
           <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all group">
             <div className="flex items-start justify-between mb-4">

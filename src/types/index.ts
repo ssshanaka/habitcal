@@ -1,3 +1,12 @@
+export interface WeatherData {
+  temp: string;
+  condition: string;
+  isRainy: boolean;
+  isSunny: boolean;
+  isCloudy: boolean;
+  isWindy: boolean;
+}
+
 export interface Habit {
   id: string;
   user_id?: string;
