@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
-import { Sparkles, AlertTriangle, CheckCircle2, Info, TrendingDown, TrendingUp } from 'lucide-react';
+import { Sparkles, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { Habit, WeatherData } from '../types';
 import { formatDateKey } from '../utils';
+import { analyzeHabitPatterns, Insight } from '../utils/analysis';
 
 interface SuccessForecastWidgetProps {
   habits: Habit[];
@@ -18,62 +19,75 @@ interface ForecastResult {
 
 const SuccessForecastWidget: React.FC<SuccessForecastWidgetProps> = ({ habits, completions, weather }) => {
   const forecast = useMemo(() => {
-    if (!weather || habits.length === 0) return null;
+    if (habits.length === 0) return null;
 
-    const today = new Date();
-    const dayOfWeek = today.getDay(); // 0 (Sun) to 6 (Sat)
-    const todayKey = formatDateKey(today);
+    // 1. Get data-driven insights from the analysis engine
+    const dataInsights = analyzeHabitPatterns(habits, completions);
+    
+    // Sort insights by priority (highest first)
+    const topDataInsight = dataInsights.sort((a, b) => b.priority - a.priority)[0];
 
-    // Find the habit with the most "at risk" profile
-    // In a real app, this would be calculated from historical weather + completion data.
-    // For this implementation, we'll use heuristics based on current weather and habit metadata.
-
-    for (const habit of habits) {
-      // Heuristic 1: Rainy weather vs "Outdoor" or "Physical" habits
-      const isOutdoorHabit = /outdoor|run|walk|jog|bike|gym|park|nature|garden/i.test(habit.title + ' ' + (habit.description || ''));
+    // 2. Calculate Heuristic-based insights (Weather/Time)
+    let heuristicInsight: ForecastResult | null = null;
+    if (weather) {
+      const today = new Date();
       
-      if (weather.isRainy && isOutdoorHabit) {
-        return {
-          habitTitle: habit.title,
-          message: `It's raining! Your consistency with "${habit.title}" usually drops in this weather. Try moving it indoors or adjusting your timing.`,
-          type: 'warning',
-          color: 'text-amber-500',
-        };
-      }
+      for (const habit of habits) {
+        // Heuristic: Rainy weather vs "Outdoor" habits
+        const isOutdoorHabit = /outdoor|run|walk|jog|bike|gym|park|nature|garden/i.test(habit.title + ' ' + (habit.description || ''));
+        if (weather.isRainy && isOutdoorHabit) {
+          heuristicInsight = {
+            habitTitle: habit.title,
+            message: `It's raining! Your consistency with "${habit.title}" usually drops in this weather. Try moving it indoors or adjusting your timing.`,
+            type: 'warning',
+            color: 'text-amber-500',
+          };
+          break;
+        }
 
-      // Heuristic 2: Sunny weather vs "Indoor" or "Relaxing" habits
-      const isIndoorHabit = /read|study|meditate|write|code|watch|listen|yoga/i.test(habit.title + ' ' + (habit.description || ''));
-      
-      if (weather.isSunny && isIndoorHabit) {
-        return {
-          habitTitle: habit.title,
-          message: `Perfect sunny day! It's a great time to stay focused on "${habit.title}" before heading out.`,
-          type: 'positive',
-          color: 'text-green-500',
-        };
-      }
-
-      // Heuristic 3: Time-based prediction (Simulated)
-      // If it's late and they have a morning habit, warn them to sleep early.
-      const hour = today.getHours();
-      if (hour >= 22 && habit.timeStart && parseInt(habit.timeStart.split(':')[0]) < 8) {
-         return {
-          habitTitle: habit.title,
-          message: `To stay consistent with "${habit.title}" tomorrow morning, try heading to bed soon!`,
-          type: 'warning',
-          color: 'text-blue-400',
-        };
+        // Heuristic: Sunny weather vs "Indoor" habits
+        const isIndoorHabit = /read|study|meditate|write|code|watch|listen|yoga/i.test(habit.title + ' ' + (habit.description || ''));
+        if (weather.isSunny && isIndoorHabit) {
+          heuristicInsight = {
+            habitTitle: habit.title,
+            message: `Perfect sunny day! It's a great time to stay focused on "${habit.title}" before heading out.`,
+            type: 'positive',
+            color: 'text-green-500',
+          };
+          break;
+        }
       }
     }
 
-    // Default message if no specific heuristic matches
+    // Time-based heuristic (Global check)
+    const hour = new Date().getHours();
+    const earlyMorningHabit = habits.find(h => h.timeStart && parseInt(h.timeStart.split(':')[0]) < 8);
+    if (hour >= 22 && earlyMorningHabit) {
+      heuristicInsight = {
+        habitTitle: earlyMorningHabit.title,
+        message: `To stay consistent with "${earlyMorningHabit.title}" tomorrow morning, try heading to bed soon!`,
+        type: 'warning',
+        color: 'text-blue-400',
+      };
+    }
+
+    // 3. Final Selection Logic:
+    // Priority: Data-driven Warning > Heuristic Warning > Data-driven Positive > Heuristic Positive > General
+    
+    if (topDataInsight && topDataInsight.type === 'warning') return topDataInsight;
+    if (heuristicInsight && heuristicInsight.type === 'warning') return heuristicInsight;
+    if (topDataInsight && topDataInsight.type === 'positive') return topDataInsight;
+    if (heuristicInsight && heuristicInsight.type === 'positive') return heuristicInsight;
+    if (topDataInsight) return topDataInsight;
+    if (heuristicInsight) return heuristicInsight;
+
     return {
       habitTitle: 'General Consistency',
       message: "You're on track! Keep up the great momentum today.",
       type: 'neutral',
       color: 'text-gcal-text',
     };
-  }, [habits, weather]);
+  }, [habits, completions, weather]);
 
   if (!forecast) return null;
 
