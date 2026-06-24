@@ -43,6 +43,7 @@ import { useToast } from './hooks/useToast';
 import { habitsService } from './services/habits';
 import { syncService } from './services/sync';
 import FocusMode from './components/FocusMode';
+import FocusMode from './components/FocusMode';
 import HabitGrid from './components/HabitGrid';
 import Sidebar from './components/Sidebar';
 import HabitModal from './components/HabitModal';
@@ -100,6 +101,7 @@ function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>(SortMode.TIME);
   const [todayFocusOnly, setTodayFocusOnly] = useState(false);
+  const [focusModeActive, setFocusModeActive] = useState(false);
   const [focusModeActive, setFocusModeActive] = useState(false);
   const [showHabitDetails, setShowHabitDetails] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
@@ -418,6 +420,10 @@ function App() {
           <div className="animate-pulse text-xl">Loading...</div>
         </div>
       );
+  }
+
+  if (focusModeActive) {
+    return <FocusMode />;
   }
 
   return (
