@@ -62,6 +62,32 @@ export const categories = [
   'Other'
 ];
 
+export const calculateMonthlyCompletion = (
+  habitId: string,
+  completions: Record<string, boolean | { completed: boolean; timestamp: string }>
+): number => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  let count = 0;
+
+  // Iterate through all completions and count those for the current month/year
+  Object.keys(completions).forEach(key => {
+    if (key.startsWith(`${habitId}_`)) {
+      const datePart = key.split('_')[1];
+      const date = new Date(datePart);
+      if (date.getFullYear() === year && date.getMonth() === month) {
+        const comp = completions[key];
+        if (typeof comp === 'boolean' ? comp : comp?.completed) {
+          count++;
+        }
+      }
+    }
+  });
+
+  return count;
+};
+
 // --- Streak Calculation Utilities ---
 
 /**

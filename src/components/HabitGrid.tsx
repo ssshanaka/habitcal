@@ -9,6 +9,7 @@ interface HabitGridProps {
   allHabitsCount: number;
   visibleHabits: Habit[];
   weekDays: Date[];
+  completions: Record<string, boolean | { completed: boolean; timestamp: string }>;
   isCompleted: (habitId: string, date: Date) => boolean;
   toggleCompletion: (habitId: string, date: Date) => void;
   openEditModal: (habit: Habit) => void;
@@ -25,6 +26,7 @@ const HabitGrid: React.FC<HabitGridProps> = ({
   allHabitsCount,
   visibleHabits,
   weekDays,
+  completions,
   isCompleted,
   toggleCompletion,
   openEditModal,
@@ -103,6 +105,7 @@ const HabitGrid: React.FC<HabitGridProps> = ({
                index={index}
                totalHabits={visibleHabits.length}
                weekDays={weekDays}
+               completions={completions}
                isCompleted={isCompleted}
                toggleCompletion={toggleCompletion}
                openEditModal={openEditModal}

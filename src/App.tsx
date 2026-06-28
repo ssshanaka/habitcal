@@ -615,6 +615,7 @@ function App() {
           allHabitsCount={habits.length}
           visibleHabits={visibleHabits}
           weekDays={weekDays}
+          completions={completions}
           isCompleted={isCompleted}
           toggleCompletion={toggleCompletion}
           openEditModal={openEditModal}

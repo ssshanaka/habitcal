@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Check, Trash2, Clock, ArrowUp, ArrowDown, Timer, Lock, Target } from 'lucide-react';
 import { Habit, SortMode } from '../types';
-import { formatTime } from '../utils';
+import { formatTime, calculateMonthlyCompletion } from '../utils';
 import HabitTimer from './HabitTimer';
 
 interface HabitRowProps {
@@ -9,6 +9,7 @@ interface HabitRowProps {
   index: number;
   totalHabits: number;
   weekDays: Date[];
+  completions: Record<string, boolean | { completed: boolean; timestamp: string }>;
   isCompleted: (habitId: string, date: Date) => boolean;
   toggleCompletion: (habitId: string, date: Date) => void;
   openEditModal: (habit: Habit) => void;
@@ -26,6 +27,7 @@ const HabitRow: React.FC<HabitRowProps> = ({
   index,
   totalHabits,
   weekDays,
+  completions,
   isCompleted,
   toggleCompletion,
   openEditModal,
@@ -40,6 +42,13 @@ const HabitRow: React.FC<HabitRowProps> = ({
   const [isTimerActive, setIsTimerActive] = useState(false);
 
   const dependencyHabit = allHabits.find(h => h.id === habit.dependencyId);
+
+  const monthlyProgress = useMemo(() => {
+    if (!habit.goalCount) return null;
+    const completedCount = calculateMonthlyCompletion(habit.id, completions);
+    const percentage = Math.min(Math.round((completedCount / habit.goalCount) * 100), 100);
+    return { completedCount, percentage };
+  }, [habit.id, habit.goalCount, completions]);
 
   return (
     <div className="flex border-b border-gcal-border hover:bg-gcal-surface/50 group transition-all duration-200 min-h-[90px] hover:shadow-md">
@@ -96,6 +105,29 @@ const HabitRow: React.FC<HabitRowProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Monthly Goal Progress */}
+            {monthlyProgress && (
+              <div className="mt-3">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-[10px] font-bold text-gcal-muted uppercase tracking-wider flex items-center gap-1">
+                    <Target size={10} /> Goal
+                  </span>
+                  <span className="text-[10px] font-bold text-gcal-text">
+                    {monthlyProgress.completedCount}/{habit.goalCount}
+                  </span>
+                </div>
+                <div className="w-full h-1.5 bg-gcal-muted/20 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full transition-all duration-500 rounded-full" 
+                    style={{ 
+                      width: `${monthlyProgress.percentage}%`, 
+                      backgroundColor: habit.color 
+                    }}
+                  />
+                </div>
+              </div>
+            )}
          </div>
 
          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
