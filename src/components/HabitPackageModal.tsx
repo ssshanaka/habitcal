@@ -3,13 +3,17 @@ import { Modal } from './Modal';
 import { Button } from './Button';
 import { HabitPackage } from '../types';
 import { useHabitPackages } from '../hooks/useHabitPackages';
+import { useToast } from '../hooks/useToast';
+import { AIRoutineArchitect } from './AIRoutineArchitect';
+import { AIResponse } from '../services/aiRoutineArchitect';
 import { 
   Package, 
   Download, 
   Plus, 
   Trash2, 
   Info, 
-  RefreshCw 
+  RefreshCw,
+  Sparkles
 } from 'lucide-react';
 
 interface HabitPackageModalProps {
@@ -20,7 +24,8 @@ interface HabitPackageModalProps {
 
 export function HabitPackageModal({ isOpen, onClose, currentHabits }: HabitPackageModalProps) {
   const { packages, loading, importPackage, createPackage } = useHabitPackages();
-  const [activeTab, setActiveTab] = useState<'browse' | 'create'>('browse');
+  const { addToast } = useToast();
+  const [activeTab, setActiveTab] = useState<'browse' | 'create' | 'ai'>('browse');
   
   // Form state for creating a package
   const [newPkgName, setNewPkgName] = useState('');
@@ -81,6 +86,15 @@ export function HabitPackageModal({ isOpen, onClose, currentHabits }: HabitPacka
             <Plus size={16} />
             Create
           </button>
+          <button 
+            onClick={() => setActiveTab('ai')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-medium transition-all ${
+              activeTab === 'ai' ? 'bg-gcal-blue text-white shadow-lg' : 'text-gcal-muted hover:text-gcal-text'
+            }`}
+          >
+            <Sparkles size={16} />
+            AI
+          </button>
         </div>
 
         {/* Tab Content */}
@@ -125,7 +139,7 @@ export function HabitPackageModal({ isOpen, onClose, currentHabits }: HabitPacka
                 </div>
               )}
             </div>
-          ) : (
+          ) : activeTab === 'create' ? (
             <div className="space-y-4">
               <div className="p-4 rounded-2xl bg-gcal-blue/5 border border-gcal-blue/20 flex gap-3">
                 <Info size={20} className="text-gcal-blue flex-shrink-0" />
@@ -169,6 +183,14 @@ export function HabitPackageModal({ isOpen, onClose, currentHabits }: HabitPacka
                 )}
               </div>
             </div>
+          ) : (
+            <AIRoutineArchitect 
+              onPackageGenerated={async (res) => {
+                await createPackage(res.packageName, res.description, res.habits);
+                addToast(`AI routine "${res.packageName}" saved to library!`, 'success');
+                setActiveTab('browse');
+              }} 
+            />
           )}
         </div>
       </div>
