@@ -1,3 +1,5 @@
+import { Habit, HabitFrequency } from './types';
+
 export const formatDateKey = (date: Date): string => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -109,7 +111,7 @@ export const getPreviousDay = (date: Date): Date => {
  * @returns Number of consecutive days with completions
  */
 export const calculateStreak = (
-  habitId: string,
+  habit: Habit,
   completions: Record<string, boolean | { completed: boolean; timestamp: string }>
 ): number => {
   let streak = 0;
@@ -118,28 +120,26 @@ export const calculateStreak = (
   const maxDaysToCheck = 365;
   
   for (let i = 0; i < maxDaysToCheck; i++) {
-    const dateKey = formatDateKey(checkDate);
-    const completionKey = `${habitId}_${dateKey}`;
-    const comp = completions[completionKey];
-    const isCompleted = typeof comp === 'boolean' ? comp : comp?.completed;
-    
-    if (isCompleted) {
-      streak++;
-      checkDate = getPreviousDay(checkDate);
-    } else {
-      if (i === 0) {
-          const yesterday = getPreviousDay(checkDate);
-          const yesterdayKey = formatDateKey(yesterday);
-          const yesterdayComp = completions[`${habitId}_${yesterdayKey}`];
-          const isYesterdayCompleted = typeof yesterdayComp === 'boolean' ? yesterdayComp : yesterdayComp?.completed;
+    const dayOfWeek = checkDate.getDay();
+    const isRequiredDay = habit.frequency === HabitFrequency.DAILY || 
+                           (habit.frequency === HabitFrequency.WEEKLY && habit.daysOfWeek?.includes(dayOfWeek));
 
-          if (isYesterdayCompleted) {
-              checkDate = yesterday;
-              continue;
-          }
+    if (isRequiredDay) {
+      const dateKey = formatDateKey(checkDate);
+      const completionKey = `${habit.id}_${dateKey}`;
+      const comp = completions[completionKey];
+      const isCompleted = typeof comp === 'boolean' ? comp : comp?.completed;
+      
+      if (isCompleted) {
+        streak++;
+      } else {
+        // Only break if this day is actually past due (not today)
+        if (!isSameDay(checkDate, new Date())) {
+          break;
+        }
       }
-      break;
     }
+    checkDate = getPreviousDay(checkDate);
   }
   
   return streak;

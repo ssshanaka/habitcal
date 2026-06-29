@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Check, Trash2, Clock, ArrowUp, ArrowDown, Timer, Lock, Target } from 'lucide-react';
-import { Habit, SortMode } from '../types';
+import { Habit, SortMode, HabitFrequency } from '../types';
 import { formatTime, calculateMonthlyCompletion } from '../utils';
 import HabitTimer from './HabitTimer';
 
@@ -157,40 +157,49 @@ const HabitRow: React.FC<HabitRowProps> = ({
           const completed = isCompleted(habit.id, day);
           const isLocked = habit.dependencyId && !isCompleted(habit.dependencyId, day);
           
+          // Frequency Check
+          const dayOfWeek = day.getDay();
+          const isScheduled = habit.frequency === HabitFrequency.DAILY || 
+                              (habit.frequency === HabitFrequency.WEEKLY && habit.daysOfWeek?.includes(dayOfWeek));
+
           return (
             <div 
               key={`${habit.id}-${i}`} 
-              className={`border-r border-gcal-border last:border-r-0 flex items-center justify-center relative ${isLocked ? 'bg-gcal-muted/10' : ''}`}
+              className={`border-r border-gcal-border last:border-r-0 flex items-center justify-center relative ${!isScheduled ? 'bg-gcal-muted/10' : (isLocked ? 'bg-gcal-muted/10' : '')}`}
             >
-               <label className={`cursor-pointer w-full h-full flex items-center justify-center transition-all duration-200 ${isLocked ? 'cursor-not-allowed' : 'hover:bg-gcal-muted/5 hover:scale-105'}`}>
-                 <input 
-                   type="checkbox" 
-                   className="sr-only"
-                   checked={completed}
-                   disabled={isLocked}
-                   onChange={() => toggleCompletion(habit.id, day)}
-                 />
-                 <div 
-                   className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
-                     completed 
-                       ? `bg-opacity-30 border-transparent shadow-lg scale-110` 
-                       : isLocked 
-                        ? 'border-gcal-muted/30 bg-gcal-muted/5'
-                        : 'border-gcal-border hover:border-gcal-blue hover:scale-105'
-                   }`}
-                   style={{ 
-                     backgroundColor: completed ? habit.color : undefined,
-                     borderColor: completed ? habit.color : undefined,
-                     boxShadow: completed ? `0 0 15px ${habit.color}40` : undefined
-                   }}
-                 >
-                   {completed ? (
-                     <Check size={24} style={{ color: 'var(--gcal-bg-solid)' }} strokeWidth={3} className="animate-in" />
-                   ) : isLocked ? (
-                     <Lock size={16} className="text-gcal-muted/40" />
-                   ) : null}
-                 </div>
-               </label>
+               {isScheduled ? (
+                 <label className={`cursor-pointer w-full h-full flex items-center justify-center transition-all duration-200 ${isLocked ? 'cursor-not-allowed' : 'hover:bg-gcal-muted/5 hover:scale-105'}`}>
+                   <input 
+                     type="checkbox" 
+                     className="sr-only"
+                     checked={completed}
+                     disabled={isLocked}
+                     onChange={() => toggleCompletion(habit.id, day)}
+                   />
+                   <div 
+                     className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                       completed 
+                         ? `bg-opacity-30 border-transparent shadow-lg scale-110` 
+                         : isLocked 
+                          ? 'border-gcal-muted/30 bg-gcal-muted/5'
+                          : 'border-gcal-border hover:border-gcal-blue hover:scale-105'
+                     }`}
+                     style={{ 
+                       backgroundColor: completed ? habit.color : undefined,
+                       borderColor: completed ? habit.color : undefined,
+                       boxShadow: completed ? `0 0 15px ${habit.color}40` : undefined
+                     }}
+                   >
+                     {completed ? (
+                       <Check size={24} style={{ color: 'var(--gcal-bg-solid)' }} strokeWidth={3} className="animate-in" />
+                     ) : isLocked ? (
+                       <Lock size={16} className="text-gcal-muted/40" />
+                     ) : null}
+                   </div>
+                 </label>
+               ) : (
+                 <div className="w-full h-full pointer-events-none" />
+               )}
             </div>
           );
         })}

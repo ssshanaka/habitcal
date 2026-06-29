@@ -32,6 +32,8 @@ export const habitsService = {
       order: h.order || 0,
       goalCount: h.goal_count || null,
       duration_minutes: h.duration_minutes || 0,
+      frequency: h.frequency || 'DAILY',
+      daysOfWeek: h.days_of_week || [],
       created_at: h.created_at
     })) as Habit[];
   },
@@ -57,6 +59,8 @@ export const habitsService = {
       order: habit.order || 0,
       goal_count: habit.goalCount || null,
       duration_minutes: habit.duration_minutes || 0,
+      frequency: habit.frequency,
+      days_of_week: habit.daysOfWeek || [],
       active: true
     }));
 
@@ -88,7 +92,9 @@ export const habitsService = {
         dependency_id: habit.dependencyId || null,
         order: habit.order,
         goal_count: habit.goalCount || null,
-        duration_minutes: habit.duration_minutes || 0
+        duration_minutes: habit.duration_minutes || 0,
+        frequency: habit.frequency,
+        days_of_week: habit.daysOfWeek || [],
       })
       .eq('id', habit.id);
 

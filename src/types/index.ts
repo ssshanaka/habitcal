@@ -7,6 +7,11 @@ export interface WeatherData {
   isWindy: boolean;
 }
 
+export enum HabitFrequency {
+  DAILY = 'DAILY',
+  WEEKLY = 'WEEKLY'
+}
+
 export interface Habit {
   id: string;
   user_id?: string;
@@ -20,6 +25,8 @@ export interface Habit {
   order: number;
   goalCount?: number; // Monthly completion goal
   duration_minutes?: number;
+  frequency: HabitFrequency;
+  daysOfWeek?: number[]; // 0-6, for WEEKLY
   created_at?: string;
 }
 

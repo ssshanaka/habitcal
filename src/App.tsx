@@ -73,7 +73,7 @@ function App() {
   const streaks = useMemo(() => {
     const streakMap: Record<string, number> = {};
     habits.forEach(habit => {
-      streakMap[habit.id] = calculateStreak(habit.id, completions);
+      streakMap[habit.id] = calculateStreak(habit, completions);
     });
     return streakMap;
   }, [habits, completions]);
@@ -128,6 +128,8 @@ function App() {
   const [newHabitCategory, setNewHabitCategory] = useState(categories[0]);
   const [newHabitDependencyId, setNewHabitDependencyId] = useState('');
   const [newHabitGoalCount, setNewHabitGoalCount] = useState<number | undefined>(undefined);
+  const [newHabitFrequency, setNewHabitFrequency] = useState<HabitFrequency>(HabitFrequency.DAILY);
+  const [newHabitDaysOfWeek, setNewHabitDaysOfWeek] = useState<number[]>([]);
 
   // Refs for click outside
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -317,6 +319,8 @@ function App() {
         category: newHabitCategory,
         dependencyId: newHabitDependencyId || undefined,
         goalCount: newHabitGoalCount,
+        frequency: newHabitFrequency,
+        daysOfWeek: newHabitDaysOfWeek,
       };
     } else {
       habitToSave = {
@@ -330,6 +334,8 @@ function App() {
         dependencyId: newHabitDependencyId || undefined,
         order: habits.length,
         goalCount: newHabitGoalCount,
+        frequency: newHabitFrequency,
+        daysOfWeek: newHabitDaysOfWeek,
       };
     }
 
@@ -363,6 +369,8 @@ function App() {
     setNewHabitCategory(habit.category || categories[0]);
     setNewHabitDependencyId(habit.dependencyId || '');
     setNewHabitGoalCount(habit.goalCount);
+    setNewHabitFrequency(habit.frequency);
+    setNewHabitDaysOfWeek(habit.daysOfWeek || []);
     setIsModalOpen(true);
   };
 
@@ -375,6 +383,8 @@ function App() {
     setNewHabitCategory(categories[0]);
     setNewHabitDependencyId('');
     setNewHabitGoalCount(undefined);
+    setNewHabitFrequency(HabitFrequency.DAILY);
+    setNewHabitDaysOfWeek([]);
     setEditingHabitId(null);
   };
 
