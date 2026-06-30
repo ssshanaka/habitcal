@@ -108,6 +108,13 @@ function App() {
   const [isNoticeOpen, setIsNoticeOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
+  // Focus Mode Habit
+  const focusedHabit = useMemo(() => {
+    if (!focusModeActive) return null;
+    // Find the first incomplete habit for today
+    return visibleHabits.find(h => !completions[`${h.id}_${todayKey}`]) || visibleHabits[0];
+  }, [focusModeActive, visibleHabits, completions, todayKey]);
+  
   useEffect(() => {
     setIsSidebarOpen(window.innerWidth >= 1024);
   }, []);
@@ -393,13 +400,16 @@ function App() {
     setIsProfileOpen(false);
   }
   
-  const handleLoginClick = () => {
-      setIsLoginModalOpen(true);
-      if (showAuthReminder) {
-          setReminderDismissed(true);
-          setShowAuthReminder(false);
-      }
-  }
+  const handleFocusComplete = async (habitId: string) => {
+    const todayKey = formatDateKey(new Date());
+    await toggleCompletion(habitId, new Date());
+    addToast('Habit completed!', 'success');
+    
+    // Small delay before exiting focus mode to show the completion state
+    setTimeout(() => {
+      setFocusModeActive(false);
+    }, 1000);
+  };
 
   // --- Timer Handler ---
   const handleTimerStop = async (habitId: string, minutes: number) => {
@@ -681,6 +691,15 @@ function App() {
       <NoticeModal isOpen={isNoticeOpen} onClose={handleCloseNotice} />
 
       <Toast toasts={toasts} onRemove={removeToast} />
+
+      {focusModeActive && focusedHabit && (
+        <FocusMode 
+          habit={focusedHabit}
+          onExit={() => setFocusModeActive(false)}
+          onComplete={() => handleFocusComplete(focusedHabit.id)}
+          onTimerStop={handleTimerStop}
+        />
+      )}
 
     </div>
   );
