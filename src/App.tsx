@@ -42,6 +42,7 @@ import { Toast } from './components/Toast';
 import { useToast } from './hooks/useToast';
 import { habitsService } from './services/habits';
 import { syncService } from './services/sync';
+import { externalSyncService } from './services/externalSync';
 import FocusMode from './components/FocusMode';
 import HabitGrid from './components/HabitGrid';
 import Sidebar from './components/Sidebar';
@@ -91,6 +92,21 @@ function App() {
           addToast('Failed to sync data', 'error');
       } finally {
           setIsSyncing(false);
+      }
+  };
+  
+  const handleExternalSync = async () => {
+      try {
+          const result = await externalSyncService.syncExternalEvents();
+          if (result.matchedCount > 0) {
+              addToast(`Synced ${result.matchedCount} habits from external sources`, 'success');
+          } else {
+              addToast('No external events matched your habits', 'info');
+          }
+          // Refresh the UI
+          await handleRefresh();
+      } catch (err) {
+          addToast('External sync failed', 'error');
       }
   };
   
@@ -607,6 +623,7 @@ function App() {
                 weeklyProgressPercent={weeklyProgressPercent}
                 setTodayForAllHabits={setTodayForAllHabits}
                 heatmapData={heatmapData}
+                onExternalSync={handleExternalSync}
               />
             </div>
           </div>
@@ -626,6 +643,7 @@ function App() {
               weeklyProgressPercent={weeklyProgressPercent}
               setTodayForAllHabits={setTodayForAllHabits}
               heatmapData={heatmapData}
+              onExternalSync={handleExternalSync}
             />
           </div>
         )}

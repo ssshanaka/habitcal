@@ -3,7 +3,8 @@ import {
   Plus, 
   Target, 
   Sparkles, 
-  BarChart3 
+  BarChart3,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from './Button';
 import { HeatmapCalendar } from './HeatmapCalendar';
@@ -11,6 +12,7 @@ import { SortMode } from '../types';
 
 interface SidebarProps {
   openCreateModal: () => void;
+  onExternalSync: () => Promise<void>;
   sortMode: SortMode;
   setSortMode: (mode: SortMode) => void;
   todayFocusOnly: boolean;
@@ -30,6 +32,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({
   openCreateModal,
+  onExternalSync,
   sortMode,
   setSortMode,
   todayFocusOnly,
@@ -83,6 +86,20 @@ const Sidebar: React.FC<SidebarProps> = ({
             Focus on today
           </span>
           <span className="text-gcal-muted">{todayFocusOnly ? 'On' : 'Off'}</span>
+        </button>
+        <button
+          onClick={onExternalSync}
+          className="w-full text-left flex items-center gap-2 glassmorphism p-3 rounded-2xl transition-all hover:shadow-md text-sm"
+          style={{
+            background: 'var(--glass-bg)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+          }}
+        >
+          <span className="flex items-center gap-2 font-medium">
+            <RefreshCw size={14} />
+            Sync External Data
+          </span>
         </button>
       </div>
 
