@@ -34,6 +34,7 @@ import { Button } from './components/Button';
 import { Modal } from './components/Modal';
 import { useAuth } from './hooks/useAuth';
 import { useHabits } from './hooks/useHabits';
+import { useNotifications } from './hooks/useNotifications';
 import { AuthReminder } from './components/AuthReminder';
 import { ProfileLoginPopup } from './components/ProfileLoginPopup';
 import { HeatmapCalendar } from './components/HeatmapCalendar';
@@ -66,6 +67,8 @@ function App() {
     moveHabit,
     clearAllCompletions
   } = useHabits(user, loading, addToast);
+
+  const { notificationsEnabled, toggleNotifications } = useNotifications(habits);
 
   // --- State ---
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -538,6 +541,18 @@ function App() {
                      </div>
                      <div className={`w-11 h-6 rounded-full relative transition-all shadow-inner ${theme === 'dark' ? 'bg-gradient-to-r from-gcal-blue to-purple-500' : 'bg-gcal-muted'}`}>
                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${theme === 'dark' ? 'left-6' : 'left-1'}`} />
+                     </div>
+                   </button>
+                   <button 
+                     onClick={toggleNotifications}
+                     className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-gcal-surface/50 transition-all text-sm font-medium"
+                   >
+                     <div className="flex items-center gap-3">
+                       <Zap size={18} className="text-gcal-blue" />
+                       <span>Notifications</span>
+                     </div>
+                     <div className={`w-11 h-6 rounded-full relative transition-all shadow-inner ${notificationsEnabled ? 'bg-gradient-to-r from-gcal-blue to-purple-500' : 'bg-gcal-muted'}`}>
+                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${notificationsEnabled ? 'left-6' : 'left-1'}`} />
                      </div>
                    </button>
                  </div>
