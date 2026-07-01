@@ -35,6 +35,7 @@ import { Modal } from './components/Modal';
 import { useAuth } from './hooks/useAuth';
 import { useHabits } from './hooks/useHabits';
 import { useNotifications } from './hooks/useNotifications';
+import { useProactiveCoach } from './hooks/useProactiveCoach';
 import { AuthReminder } from './components/AuthReminder';
 import { ProfileLoginPopup } from './components/ProfileLoginPopup';
 import { HeatmapCalendar } from './components/HeatmapCalendar';
@@ -70,6 +71,7 @@ function App() {
   } = useHabits(user, loading, addToast);
 
   const { notificationsEnabled, toggleNotifications } = useNotifications(habits);
+  useProactiveCoach(habits, completions);
 
   // --- State ---
   const [currentDate, setCurrentDate] = useState(new Date());
