@@ -48,6 +48,7 @@ import FocusMode from './components/FocusMode';
 import HabitGrid from './components/HabitGrid';
 import Sidebar from './components/Sidebar';
 import HabitModal from './components/HabitModal';
+import { AIRoutineArchitect } from './components/AIRoutineArchitect';
 
 function App() {
   // --- Auth ---
@@ -117,6 +118,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isAIArchitectOpen, setIsAIArchitectOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>(SortMode.TIME);
   const [todayFocusOnly, setTodayFocusOnly] = useState(false);
   const [focusModeActive, setFocusModeActive] = useState(false);
@@ -494,6 +496,14 @@ function App() {
 
           <div className="flex items-center gap-2">
             <Button 
+              variant="secondary" 
+              onClick={() => setIsAIArchitectOpen(true)}
+              className="hidden md:flex items-center gap-2 px-4 bg-gradient-to-r from-gcal-blue/20 to-purple-500/20 text-gcal-blue hover:from-gcal-blue/30 hover:to-purple-500/30 border border-gcal-blue/20"
+            >
+              <Sparkles size={18} />
+              <span>AI Architect</span>
+            </Button>
+            <Button 
               variant={focusModeActive ? "gradient" : "secondary"} 
               onClick={() => setFocusModeActive(!focusModeActive)}
               className="hidden md:flex items-center gap-2 px-4"
@@ -724,6 +734,20 @@ function App() {
       <NoticeModal isOpen={isNoticeOpen} onClose={handleCloseNotice} />
 
       <Toast toasts={toasts} onRemove={removeToast} />
+
+      <Modal isOpen={isAIArchitectOpen} onClose={() => setIsAIArchitectOpen(false)} title="AI Routine Architect">
+        <AIRoutineArchitect 
+          habits={habits} 
+          saveHabit={saveHabit}
+          onPackageGenerated={async (pkg) => {
+            for (const h of pkg.habits) {
+              await saveHabit({ ...h, id: generateId() }, false);
+            }
+            addToast(`Routine "${pkg.packageName}" applied!`, 'success');
+            setIsAIArchitectOpen(false);
+          }} 
+        />
+      </Modal>
 
       {focusModeActive && focusedHabit && (
         <FocusMode 
