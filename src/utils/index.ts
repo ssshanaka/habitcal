@@ -1,4 +1,4 @@
-import { Habit, HabitFrequency } from './types';
+import { Habit, HabitFrequency } from '../types';
 
 export const formatDateKey = (date: Date): string => {
   const y = date.getFullYear();
