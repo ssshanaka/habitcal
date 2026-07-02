@@ -9,14 +9,25 @@ export interface Insight {
   priority: number; // Higher = more important to show
 }
 
+export interface HabitStats {
+  successRate: number;
+  momentum: number; // 7d rate / 30d rate. < 1 = declining, > 1 = improving
+}
+
+export interface AnalysisResult {
+  insights: Insight[];
+  stats: Record<string, HabitStats>;
+}
+
 /**
  * Analyzes habit completion patterns to provide proactive coaching insights.
  */
 export const analyzeHabitPatterns = (
   habits: Habit[],
   completions: Record<string, boolean | { completed: boolean; timestamp: string }>
-): Insight[] => {
+): AnalysisResult => {
   const insights: Insight[] = [];
+  const stats: Record<string, HabitStats> = {};
   const today = new Date();
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -37,6 +48,14 @@ export const analyzeHabitPatterns = (
     const totalDays = history.length;
     const completedDays = history.filter(h => h.completed).length;
     const successRate = completedDays / totalDays;
+
+    // Momentum calculation: last 7 days vs last 30 days
+    const last7Days = history.slice(0, 7);
+    const completed7Days = last7Days.filter(h => h.completed).length;
+    const rate7d = completed7Days / last7Days.length;
+    const momentum = successRate > 0 ? rate7d / successRate : (rate7d > 0 ? 2 : 1);
+
+    stats[habitId] = { successRate, momentum };
 
     // 1. Day-of-Week Correlation
     const dayCounts = new Array(7).fill(0);
@@ -94,5 +113,5 @@ export const analyzeHabitPatterns = (
     }
   });
 
-  return insights;
+  return { insights, stats };
 };
