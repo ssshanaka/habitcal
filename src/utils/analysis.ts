@@ -12,6 +12,7 @@ export interface Insight {
 export interface HabitStats {
   successRate: number;
   momentum: number; // 7d rate / 30d rate. < 1 = declining, > 1 = improving
+  typicalTimeOfDay: 'Morning' | 'Afternoon' | 'Evening' | 'Night';
 }
 
 export interface AnalysisResult {
@@ -33,7 +34,7 @@ export const analyzeHabitPatterns = (
 
   habits.forEach(habit => {
     const habitId = habit.id;
-    const history: { date: Date; completed: boolean }[] = [];
+    const history: { date: Date; completed: boolean; hour?: number }[] = [];
     
     // Analyze last 30 days
     for (let i = 0; i < 30; i++) {
@@ -42,7 +43,11 @@ export const analyzeHabitPatterns = (
       const key = `${habitId}_${formatDateKey(date)}`;
       const comp = completions[key];
       const isCompleted = typeof comp === 'boolean' ? comp : comp?.completed;
-      history.push({ date, completed: !!isCompleted });
+      let hour: number | undefined = undefined;
+      if (isCompleted && typeof comp !== 'boolean' && comp?.timestamp) {
+        hour = new Date(comp.timestamp).getHours();
+      }
+      history.push({ date, completed: !!isCompleted, hour });
     }
 
     const totalDays = history.length;
@@ -55,7 +60,28 @@ export const analyzeHabitPatterns = (
     const rate7d = completed7Days / last7Days.length;
     const momentum = successRate > 0 ? rate7d / successRate : (rate7d > 0 ? 2 : 1);
 
-    stats[habitId] = { successRate, momentum };
+    // Time of Day Analysis
+    const timeCounts = { Morning: 0, Afternoon: 0, Evening: 0, Night: 0 };
+    history.forEach(h => {
+      if (h.completed && h.hour !== undefined) {
+        const hour = h.hour;
+        if (hour >= 5 && hour < 12) timeCounts.Morning++;
+        else if (hour >= 12 && hour < 17) timeCounts.Afternoon++;
+        else if (hour >= 17 && hour < 22) timeCounts.Evening++;
+        else timeCounts.Night++;
+      }
+    });
+
+    let typicalTimeOfDay: 'Morning' | 'Afternoon' | 'Evening' | 'Night' = 'Morning';
+    let maxCount = -1;
+    (Object.keys(timeCounts) as Array<'Morning' | 'Afternoon' | 'Evening' | 'Night'>).forEach(bucket => {
+      if (timeCounts[bucket] > maxCount) {
+        maxCount = timeCounts[bucket];
+        typicalTimeOfDay = bucket;
+      }
+    });
+
+    stats[habitId] = { successRate, momentum, typicalTimeOfDay };
 
     // 1. Day-of-Week Correlation
     const dayCounts = new Array(7).fill(0);

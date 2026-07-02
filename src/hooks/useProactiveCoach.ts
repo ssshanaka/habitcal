@@ -12,7 +12,7 @@ export const useProactiveCoach = (habits: Habit[], completions: Record<string, a
   useEffect(() => {
     if (loading || !dataLoaded(habits, completions)) return;
 
-    const insights = generateProactiveInsight(habits, completions, weather);
+    const insights = generateProactiveInsight(habits, completions, weather, new Date());
     
     if (insights.length > 0) {
       const topInsight = insights[0];
@@ -21,7 +21,7 @@ export const useProactiveCoach = (habits: Habit[], completions: Record<string, a
       if (lastInsightRef.current !== insightId) {
         addToast(
           `Coach Tip: ${topInsight.message}`, 
-          topInsight.type === 'positive' ? 'success' : topInsight.type === 'warning' ? 'warning' : 'info'
+          topInsight.type === 'positive' ? 'success' : topInsight.type === 'warning' ? 'info' : 'info'
         );
         lastInsightRef.current = insightId;
       }

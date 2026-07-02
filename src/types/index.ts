@@ -55,11 +55,14 @@ export interface Circle {
   created_at: string;
 }
 
-export interface CircleMember {
+export interface CircleChallenge {
+  id: string;
   circle_id: string;
-  user_id: string;
-  joined_at: string;
-  role: 'admin' | 'member';
+  title: string;
+  description: string;
+  target_habit_id: string;
+  goal_streak: number;
+  created_at: string;
 }
 
 export type ViewMode = 'week'; // Can be extended to month later
