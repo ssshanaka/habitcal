@@ -17,7 +17,8 @@ import {
   Search,
   RefreshCw,
   Zap,
-  X
+  X,
+  Activity
 } from 'lucide-react';
 import { 
   getWeekStart, 
@@ -29,6 +30,7 @@ import {
   categories,
   calculateStreak
 } from './utils';
+import { calculateDailyDensity } from './utils/analysis';
 import { Habit, SortMode } from './types';
 import { Button } from './components/Button';
 import { Modal } from './components/Modal';
@@ -196,6 +198,10 @@ function App() {
     };
   }, [habits, completions, todayKey, weekDays, streaks]);
 
+  const densityAnalysis = useMemo(() => {
+    return calculateDailyDensity(habits);
+  }, [habits]);
+
   const todayProgressPercent = completionStats.todayTotal
     ? Math.round((completionStats.todayCompleted / completionStats.todayTotal) * 100)
     : 0;
@@ -270,6 +276,17 @@ function App() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Density Warning Notification
+  useEffect(() => {
+    if (densityAnalysis.warnings.length > 0 && densityAnalysis.intensityScore > 70) {
+      const firstWarning = densityAnalysis.warnings[0];
+      addToast(
+        `High intensity detected between ${firstWarning.startTime} and ${firstWarning.endTime}. Consider staggering your routines to avoid burnout!`, 
+        'warning'
+      );
+    }
+  }, [densityAnalysis]);
 
 
   // --- Sorting ---
@@ -529,6 +546,12 @@ function App() {
               <Zap size={18} className={focusModeActive ? "text-white" : "text-gcal-blue"} />
               <span>{focusModeActive ? "Exit Focus" : "Focus Mode"}</span>
             </Button>
+
+            <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-gcal-surface/50 border border-gcal-border transition-all duration-300">
+              <Activity size={16} className={densityAnalysis.intensityScore > 70 ? 'text-red-500' : densityAnalysis.intensityScore > 40 ? 'text-amber-500' : 'text-green-500'} />
+              <span className="text-xs font-medium text-gcal-text">Intensity: {densityAnalysis.intensityScore}%</span>
+            </div>
+
             <div className="relative max-w-xs hidden md:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gcal-muted" size={18} />
               <input 
