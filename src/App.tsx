@@ -275,16 +275,32 @@ function App() {
   // --- Sorting ---
   const sortedHabits = useMemo(() => {
     const list = [...habits];
-    if (sortMode === SortMode.TIME) {
-      return list.sort((a, b) => {
+    
+    return list.sort((a, b) => {
+      // 1. Sort by Category first
+      const catA = a.category || 'Uncategorized';
+      const catB = b.category || 'Uncategorized';
+      
+      const catOrder = categories.indexOf(catA);
+      const catOrderB = categories.indexOf(catB);
+      
+      const finalCatA = catOrder === -1 ? categories.length : catOrder;
+      const finalCatB = catOrderB === -1 ? categories.length : catOrderB;
+      
+      if (finalCatA !== finalCatB) {
+        return finalCatA - finalCatB;
+      }
+
+      // 2. Sort within category by Time or Manual Order
+      if (sortMode === SortMode.TIME) {
         if (!a.timeStart && !b.timeStart) return a.order - b.order;
         if (!a.timeStart) return 1;
         if (!b.timeStart) return -1;
         return a.timeStart.localeCompare(b.timeStart);
-      });
-    } else {
-      return list.sort((a, b) => a.order - b.order);
-    }
+      } else {
+        return a.order - b.order;
+      }
+    });
   }, [habits, sortMode]);
 
   const visibleHabits = useMemo(() => {

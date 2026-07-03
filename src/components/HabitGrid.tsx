@@ -98,7 +98,29 @@ const HabitGrid: React.FC<HabitGridProps> = ({
              <p className="text-sm mt-1">Turn off &quot;Focus on today&quot; to see all habits.</p>
            </div>
          ) : (
-           visibleHabits.map((habit, index) => (
+         {visibleHabits.reduce((acc: JSX.Element[], habit, index) => {
+           const currentCat = habit.category || 'Uncategorized';
+           const prevHabit = visibleHabits[index - 1];
+           const prevCat = prevHabit ? (prevHabit.category || 'Uncategorized') : null;
+
+           const elements = [];
+
+           // Render category header if it's the first habit or category changed
+           if (currentCat !== prevCat) {
+             elements.push(
+               <div 
+                 key={`cat-header-${currentCat}`} 
+                 className="flex items-center gap-3 py-4 px-4 bg-gcal-surface/20 border-y border-gcal-border/50 sticky top-0 z-10"
+               >
+                 <span className="text-[10px] font-black text-gcal-muted uppercase tracking-[0.2em]">
+                   {currentCat}
+                 </span>
+                 <div className="flex-1 h-px bg-gradient-to-r from-gcal-border/50 to-transparent" />
+               </div>
+             );
+           }
+
+           elements.push(
              <HabitRow 
                key={habit.id}
                habit={habit}
@@ -117,7 +139,10 @@ const HabitGrid: React.FC<HabitGridProps> = ({
                onTimerStop={handleTimerStop}
                allHabits={visibleHabits}
              />
-           ))
+           );
+
+           return [...acc, ...elements];
+         }, [])}
          )}
          
          {/* Mobile/Floating Add Button */}
