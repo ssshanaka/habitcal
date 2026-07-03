@@ -20,10 +20,13 @@ export function AIRoutineArchitect({ onPackageGenerated, habits, saveHabit }: AI
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 
   useEffect(() => {
-    if (weather && habits.length > 0) {
-      const currentSuggestions = adaptiveSuggestions.getSuggestions(habits, weather);
-      setSuggestions(currentSuggestions);
-    }
+    const updateSuggestions = async () => {
+      if (weather && habits.length > 0) {
+        const currentSuggestions = await adaptiveSuggestions.getSuggestions(habits, weather);
+        setSuggestions(currentSuggestions);
+      }
+    };
+    updateSuggestions();
   }, [weather, habits]);
 
   const handleGenerate = async () => {
@@ -60,8 +63,11 @@ export function AIRoutineArchitect({ onPackageGenerated, habits, saveHabit }: AI
     };
 
     await saveHabit(updatedHabit, true);
-    // Refresh suggestions by updating state (though habits prop will change)
-    setSuggestions(adaptiveSuggestions.getSuggestions(habits, weather));
+    // Refresh suggestions
+    if (weather && habits.length > 0) {
+      const currentSuggestions = await adaptiveSuggestions.getSuggestions(habits, weather);
+      setSuggestions(currentSuggestions);
+    }
   };
 
   return (

@@ -1,5 +1,6 @@
 import { Habit } from '../types';
 import { WeatherData } from './weather';
+import { aiRoutineArchitect } from './aiRoutineArchitect';
 
 export interface Suggestion {
   originalHabitId: string;
@@ -10,48 +11,50 @@ export interface Suggestion {
 }
 
 export const adaptiveSuggestions = {
-  getSuggestions(habits: Habit[], weather: WeatherData | null): Suggestion[] {
+  async getSuggestions(habits: Habit[], weather: WeatherData | null): Promise<Suggestion[]> {
     if (!weather) return [];
 
     const suggestions: Suggestion[] = [];
     const condition = weather.condition.toLowerCase();
-    
-    const weatherMappings: Record<string, { keyword: string; alt: string; reason: string; color: string }>[] = {
-      rainy: [
-        { keyword: 'run', alt: 'Indoor Cardio', reason: 'It\'s raining outside! Keep the momentum indoors.', color: '#3B82F6' },
-        { keyword: 'jog', alt: 'Treadmill Session', reason: 'Rainy weather detected. Switch to treadmill.', color: '#3B82F6' },
-        { keyword: 'walk', alt: 'Yoga / Stretching', reason: 'Bad weather for a walk. How about some indoor yoga?', color: '#10B981' },
-        { keyword: 'outdoor', alt: 'Indoor Alternative', reason: 'Avoid the rain with an indoor session.', color: '#8B5CF6' },
-      ],
-      cloudy: [
-        { keyword: 'sun', alt: 'Reading / Study', reason: 'Cloudy day — perfect for deep focus and learning.', color: '#F59E0B' },
-      ],
-      clear: [
-        { keyword: 'gym', alt: 'Outdoor Park Workout', reason: 'The weather is beautiful! Take your workout outside.', color: '#EF4444' },
-      ],
-      stormy: [
-        { keyword: 'run', alt: 'Home HIIT', reason: 'Stormy weather is dangerous for running. Try HIIT at home.', color: '#EF4444' },
-        { keyword: 'walk', alt: 'Meditation', reason: 'Stay safe indoors. Use this time for mindfulness.', color: '#10B981' },
-      ]
-    };
 
-    const currentCondition = Object.keys(weatherMappings).find(c => condition.includes(c)) || 'clear';
-    const mappings = weatherMappings[currentCondition] || [];
+    const weatherSensitiveKeywords = ['run', 'jog', 'walk', 'outdoor', 'gym', 'hike', 'cycling', 'swim', 'park'];
+    const badWeatherConditions = ['rainy', 'stormy', 'rain', 'storm', 'heavy rain'];
+    const isBadWeather = badWeatherConditions.some(c => condition.includes(c));
 
-    habits.forEach(habit => {
+    for (const habit of habits) {
       const title = habit.title.toLowerCase();
-      const match = mappings.find(m => title.includes(m.keyword));
-      
-      if (match) {
-        suggestions.push({
-          originalHabitId: habit.id,
-          originalTitle: habit.title,
-          suggestedTitle: match.alt,
-          reason: match.reason,
-          suggestedColor: match.color
-        });
+      const isSensitive = weatherSensitiveKeywords.some(keyword => title.includes(keyword));
+
+      if (isSensitive && isBadWeather) {
+        try {
+          const response = await aiRoutineArchitect.generatePackage({
+            goal: `indoor alternative for ${habit.title} due to ${weather.condition} weather`
+          });
+
+          if (response.habits.length > 0) {
+            const suggested = response.habits[0];
+            suggestions.push({
+              originalHabitId: habit.id,
+              originalTitle: habit.title,
+              suggestedTitle: suggested.title,
+              reason: `It's ${weather.condition} outside. How about this instead?`,
+              suggestedColor: suggested.color
+            });
+          }
+        } catch (err) {
+          console.error('AI suggestion generation failed:', err);
+          if (title.includes('run') || title.includes('jog')) {
+            suggestions.push({
+              originalHabitId: habit.id,
+              originalTitle: habit.title,
+              suggestedTitle: 'Indoor Cardio',
+              reason: 'Rainy weather detected. Switch to indoor training.',
+              suggestedColor: '#3B82F6'
+            });
+          }
+        }
       }
-    });
+    }
 
     return suggestions;
   }
