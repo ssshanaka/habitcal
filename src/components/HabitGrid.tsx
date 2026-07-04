@@ -6,6 +6,7 @@ import { Button } from './Button';
 import HabitRow from './HabitRow';
 
 interface HabitGridProps {
+  allHabits: Habit[];
   allHabitsCount: number;
   visibleHabits: Habit[];
   weekDays: Date[];
@@ -24,12 +25,14 @@ interface HabitGridProps {
 }
 
 const HabitGrid: React.FC<HabitGridProps> = ({
+  allHabits,
   allHabitsCount,
   visibleHabits,
   weekDays,
   completions,
   isCompleted,
   toggleCompletion,
+  setCompletionsForDate,
   openEditModal,
   handleDeleteHabit,
   moveHabit,
@@ -63,8 +66,8 @@ const HabitGrid: React.FC<HabitGridProps> = ({
            {weekDays.map((day, i) => {
              const isToday = isSameDay(day, today);
              
-             // Calculate if all visible habits are completed for this day
-             const allCompleted = visibleHabits.length > 0 && visibleHabits.every(h => isCompleted(h.id, day));
+             // Calculate if all habits are completed for this day
+             const allCompleted = allHabits.length > 0 && allHabits.every(h => isCompleted(h.id, day));
 
              return (
                <div key={i} className="flex flex-col items-center justify-center py-4 border-r border-gcal-border last:border-r-0">

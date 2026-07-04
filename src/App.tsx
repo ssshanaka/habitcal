@@ -717,6 +717,7 @@ function App() {
 
         {/* --- Grid View --- */}
         <HabitGrid
+          allHabits={habits}
           allHabitsCount={habits.length}
           visibleHabits={visibleHabits}
           weekDays={weekDays}
