@@ -1,4 +1,4 @@
-import { Habit } from '../types';
+import { Habit, HabitEnvironment } from '../types';
 import { analyzeHabitPatterns, Insight } from '../utils/analysis';
 import { WeatherData } from '../types';
 
@@ -27,29 +27,49 @@ export const generateProactiveInsight = (
   else if (currentHour >= 17 && currentHour < 22) currentBucket = 'Evening';
   else currentBucket = 'Night';
 
-  // Keywords that suggest a habit is typically outdoor or environment-sensitive
-  const outdoorKeywords = ['walk', 'run', 'gym', 'cycle', 'exercise', 'outdoor', 'jog', 'sport', 'hiking', 'yoga'];
-  const indoorKeywords = ['read', 'code', 'meditate', 'study', 'write', 'clean', 'cook'];
+  // Mapping of outdoor activities to indoor alternatives for the "Smart Swap" feature
+  const SMART_SWAPS: Record<string, string> = {
+    'run': '15-min yoga or indoor walking',
+    'jog': 'indoor walking or stretching',
+    'walk': 'reading or meditation',
+    'cycle': 'bodyweight exercises',
+    'gym': 'at-home fitness routine',
+    'hiking': 'indoor stretching',
+    'sport': 'light indoor activity',
+    'exercise': 'stretching'
+  };
 
   habits.forEach(habit => {
     const titleLower = habit.title.toLowerCase();
     const descLower = (habit.description || '').toLowerCase();
-    const isOutdoor = outdoorKeywords.some(k => titleLower.includes(k) || descLower.includes(k)) || habit.category === 'Health';
-    const isIndoor = indoorKeywords.some(k => titleLower.includes(k) || descLower.includes(k));
+    
+    // Use the new environment field if available, otherwise fallback to keyword detection
+    const isOutdoor = habit.environment === HabitEnvironment.OUTDOOR || 
+                     (habit.environment === HabitEnvironment.ANY && 
+                      ['walk', 'run', 'gym', 'cycle', 'exercise', 'outdoor', 'jog', 'sport', 'hiking', 'yoga'].some(k => titleLower.includes(k) || descLower.includes(k)));
     
     const habitStats = stats[habit.id];
     const isVulnerable = habitStats ? (habitStats.momentum < 0.8 || habitStats.successRate < 0.5) : false;
 
-    // Rainy Weather -> Warning for outdoor habits
+    // Rainy Weather -> Warning and Smart Swap for outdoor habits
     if (weather.isRainy && isOutdoor) {
       const timeContext = habitStats?.typicalTimeOfDay && habitStats.typicalTimeOfDay !== currentBucket 
         ? ` Since you usually do this in the ${habitStats.typicalTimeOfDay}` 
         : "";
 
+      // Determine the suggested swap
+      let suggestedSwap = "an indoor activity";
+      for (const [key, value] of Object.entries(SMART_SWAPS)) {
+        if (titleLower.includes(key)) {
+          suggestedSwap = value;
+          break;
+        }
+      }
+
       if (isVulnerable) {
         finalInsights.push({
           habitTitle: habit.title,
-          message: `It's raining, and your momentum for "${habit.title}" has been dipping lately.${timeContext} 🌧️ I highly recommend swapping this for an indoor activity today to protect your streak!`,
+          message: `It's raining, and your momentum for "${habit.title}" has been dipping lately.${timeContext} 🌧️ I highly recommend swapping this for ${suggestedSwap} today to protect your streak!`,
           type: 'warning',
           color: 'text-red-500',
           priority: 6, // Ultra high priority for vulnerable habits
@@ -57,7 +77,7 @@ export const generateProactiveInsight = (
       } else {
         finalInsights.push({
           habitTitle: habit.title,
-          message: `It's raining outside!${timeContext} 🌧️ Consider swapping your "${habit.title}" for an indoor activity or moving it to a different time to keep your streak alive.`,
+          message: `It's raining outside!${timeContext} 🌧️ Instead of "${habit.title}", how about ${suggestedSwap} to keep your streak alive?`,
           type: 'warning',
           color: 'text-amber-500',
           priority: 5, 

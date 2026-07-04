@@ -2,7 +2,7 @@ import React from 'react';
 import { Trash2 } from 'lucide-react';
 import { Modal } from './Modal';
 import { Button } from './Button';
-import { Habit, HabitFrequency } from '../types';
+import { Habit, HabitFrequency, HabitEnvironment } from '../types';
 
 interface HabitModalProps {
   isOpen: boolean;
@@ -22,6 +22,8 @@ interface HabitModalProps {
   setNewHabitColor: (val: string) => void;
   newHabitCategory: string;
   setNewHabitCategory: (val: string) => void;
+  newHabitEnvironment: HabitEnvironment;
+  setNewHabitEnvironment: (val: HabitEnvironment) => void;
   newHabitDependencyId: string;
   setNewHabitDependencyId: (val: string) => void;
   newHabitFrequency: HabitFrequency;
@@ -51,6 +53,8 @@ const HabitModal: React.FC<HabitModalProps> = ({
   setNewHabitColor,
   newHabitCategory,
   setNewHabitCategory,
+  newHabitEnvironment,
+  setNewHabitEnvironment,
   newHabitDependencyId,
   setNewHabitDependencyId,
   newHabitFrequency,
@@ -115,24 +119,46 @@ const HabitModal: React.FC<HabitModalProps> = ({
             </div>
           </div>
 
-          <div>
-             <label className="block text-xs font-bold text-gcal-muted mb-3 uppercase tracking-wider">Category</label>
-             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-               {categories.map(cat => (
-                 <button
-                   type="button"
-                   key={cat}
-                   onClick={() => setNewHabitCategory(cat)}
-                   className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 border ${
-                     newHabitCategory === cat 
-                       ? 'bg-gcal-blue text-white border-gcal-blue shadow-md scale-105' 
-                       : 'bg-transparent border-gcal-border text-gcal-text hover:border-gcal-blue hover:bg-gcal-surface/50'
-                   }`}
-                 >
-                   {cat}
-                 </button>
-               ))}
-             </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+               <label className="block text-xs font-bold text-gcal-muted mb-3 uppercase tracking-wider">Category</label>
+               <div className="grid grid-cols-1 gap-2">
+                 {categories.map(cat => (
+                   <button
+                     type="button"
+                     key={cat}
+                     onClick={() => setNewHabitCategory(cat)}
+                     className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 border ${
+                       newHabitCategory === cat 
+                         ? 'bg-gcal-blue text-white border-gcal-blue shadow-md scale-105' 
+                         : 'bg-transparent border-gcal-border text-gcal-text hover:border-gcal-blue hover:bg-gcal-surface/50'
+                     }`}
+                   >
+                     {cat}
+                   </button>
+                 ))}
+               </div>
+            </div>
+
+            <div>
+               <label className="block text-xs font-bold text-gcal-muted mb-3 uppercase tracking-wider">Environment</label>
+               <div className="flex flex-col gap-2">
+                 {(Object.values(HabitEnvironment) as HabitEnvironment[]).map(env => (
+                   <button
+                     type="button"
+                     key={env}
+                     onClick={() => setNewHabitEnvironment(env)}
+                     className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 border ${
+                       newHabitEnvironment === env 
+                         ? 'bg-gcal-blue text-white border-gcal-blue shadow-md scale-105' 
+                         : 'bg-transparent border-gcal-border text-gcal-text hover:border-gcal-blue hover:bg-gcal-surface/50'
+                     }`}
+                   >
+                     {env === HabitEnvironment.ANY ? 'Any' : env.charAt(0) + env.slice(1).toLowerCase()}
+                   </button>
+                 ))}
+               </div>
+            </div>
           </div>
 
           <div>

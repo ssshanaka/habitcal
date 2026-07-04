@@ -1,3 +1,9 @@
+export enum HabitEnvironment {
+  ANY = 'ANY',
+  INDOOR = 'INDOOR',
+  OUTDOOR = 'OUTDOOR'
+}
+
 export interface WeatherData {
   temp: string;
   condition: string;
@@ -21,6 +27,7 @@ export interface Habit {
   timeEnd?: string; // HH:mm format
   color: string;
   category?: string;
+  environment?: HabitEnvironment;
   dependencyId?: string; // ID of the habit this one depends on
   order: number;
   goalCount?: number; // Monthly completion goal

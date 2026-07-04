@@ -31,7 +31,7 @@ import {
   calculateStreak
 } from './utils';
 import { calculateDailyDensity } from './utils/analysis';
-import { Habit, SortMode } from './types';
+import { Habit, SortMode, HabitEnvironment } from './types';
 import { Button } from './components/Button';
 import { Modal } from './components/Modal';
 import { useAuth } from './hooks/useAuth';
@@ -151,6 +151,7 @@ function App() {
 
   // Editing State
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
+  const [newHabitEnvironment, setNewHabitEnvironment] = useState<HabitEnvironment>(HabitEnvironment.ANY);
   
   // Form State
   const [newHabitTitle, setNewHabitTitle] = useState('');
@@ -381,6 +382,7 @@ function App() {
         timeEnd: newHabitTimeEnd || undefined,
         color: newHabitColor,
         category: newHabitCategory,
+        environment: newHabitEnvironment,
         dependencyId: newHabitDependencyId || undefined,
         goalCount: newHabitGoalCount,
         frequency: newHabitFrequency,
@@ -395,6 +397,7 @@ function App() {
         timeEnd: newHabitTimeEnd || undefined,
         color: newHabitColor,
         category: newHabitCategory,
+        environment: newHabitEnvironment,
         dependencyId: newHabitDependencyId || undefined,
         order: habits.length,
         goalCount: newHabitGoalCount,
@@ -431,6 +434,7 @@ function App() {
     setNewHabitTimeEnd(habit.timeEnd || '');
     setNewHabitColor(habit.color);
     setNewHabitCategory(habit.category || categories[0]);
+    setNewHabitEnvironment(habit.environment || HabitEnvironment.ANY);
     setNewHabitDependencyId(habit.dependencyId || '');
     setNewHabitGoalCount(habit.goalCount);
     setNewHabitFrequency(habit.frequency);
@@ -445,6 +449,7 @@ function App() {
     setNewHabitTimeEnd('');
     setNewHabitColor(colors[0]);
     setNewHabitCategory(categories[0]);
+    setNewHabitEnvironment(HabitEnvironment.ANY);
     setNewHabitDependencyId('');
     setNewHabitGoalCount(undefined);
     setNewHabitFrequency(HabitFrequency.DAILY);
@@ -755,6 +760,8 @@ function App() {
         setNewHabitColor={setNewHabitColor}
         newHabitCategory={newHabitCategory}
         setNewHabitCategory={setNewHabitCategory}
+        newHabitEnvironment={newHabitEnvironment}
+        setNewHabitEnvironment={setNewHabitEnvironment}
         newHabitDependencyId={newHabitDependencyId}
         setNewHabitDependencyId={setNewHabitDependencyId}
         colors={colors}
