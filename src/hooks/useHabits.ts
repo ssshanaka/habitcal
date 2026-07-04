@@ -165,15 +165,14 @@ export function useHabits(user: any, loading: boolean, addToast?: (message: stri
     }
   };
 
-  const setTodayForAll = async (completed: boolean) => {
-    const todayDate = new Date();
+  const setCompletionsForDate = async (date: Date, completed: boolean) => {
     const prevCompletions = completions;
-    const todayKey = formatDateKey(todayDate);
+    const dateKey = formatDateKey(date);
 
     // Optimistic update
     const newCompletions: Record<string, any> = { ...prevCompletions };
     habits.forEach(habit => {
-      const key = `${habit.id}_${todayKey}`;
+      const key = `${habit.id}_${dateKey}`;
       newCompletions[key] = completed 
         ? { completed: true, timestamp: new Date().toISOString() } 
         : false;
@@ -182,12 +181,16 @@ export function useHabits(user: any, loading: boolean, addToast?: (message: stri
 
     if (user) {
       try {
-        await habitsService.setCompletionsForDate(todayDate, completed);
+        await habitsService.setCompletionsForDate(date, completed);
       } catch (error) {
         setCompletions(prevCompletions);
-        addToast?.('Failed to update today\'s habits', 'error');
+        addToast?.(`Failed to update completions for ${dateKey}`, 'error');
       }
     }
+  };
+
+  const setTodayForAll = async (completed: boolean) => {
+    await setCompletionsForDate(new Date(), completed);
   };
 
   const clearAllCompletions = async () => {
@@ -227,6 +230,7 @@ export function useHabits(user: any, loading: boolean, addToast?: (message: stri
     saveHabit,
     deleteHabit,
     setTodayForAll,
+    setCompletionsForDate,
     moveHabit,
     clearAllCompletions
   };

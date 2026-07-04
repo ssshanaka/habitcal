@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Target } from 'lucide-react';
+import { Plus, Target, CheckCircle2, Circle } from 'lucide-react';
 import { Habit, SortMode } from '../types';
 import { isSameDay } from '../utils';
 import { Button } from './Button';
@@ -12,6 +12,7 @@ interface HabitGridProps {
   completions: Record<string, boolean | { completed: boolean; timestamp: string }>;
   isCompleted: (habitId: string, date: Date) => boolean;
   toggleCompletion: (habitId: string, date: Date) => void;
+  setCompletionsForDate: (date: Date, completed: boolean) => Promise<void>;
   openEditModal: (habit: Habit) => void;
   handleDeleteHabit: (id: string) => Promise<void>;
   moveHabit: (index: number, direction: 'up' | 'down') => void;
@@ -61,6 +62,10 @@ const HabitGrid: React.FC<HabitGridProps> = ({
          <div className="flex-1 grid grid-cols-7">
            {weekDays.map((day, i) => {
              const isToday = isSameDay(day, today);
+             
+             // Calculate if all visible habits are completed for this day
+             const allCompleted = visibleHabits.length > 0 && visibleHabits.every(h => isCompleted(h.id, day));
+
              return (
                <div key={i} className="flex flex-col items-center justify-center py-4 border-r border-gcal-border last:border-r-0">
                  <span className={`text-xs font-bold uppercase mb-2 tracking-wider ${isToday ? 'bg-gradient-to-r from-gcal-blue to-purple-500 bg-clip-text text-transparent' : 'text-gcal-muted'}`}>
@@ -74,7 +79,24 @@ const HabitGrid: React.FC<HabitGridProps> = ({
                    {day.getDate()}
                  </div>
                  {/* New: Date/Month Display */}
-                 <span className="text-[10px] text-gcal-muted uppercase mt-1">{day.toLocaleDateString('en-US', { month: 'short' })}</span>
+                 <span className="text-[10px] text-gcal-muted uppercase mt-1 mb-3">{day.toLocaleDateString('en-US', { month: 'short' })}</span>
+                 
+                 {/* Bulk Completion Toggle */}
+                 <button 
+                   onClick={() => setCompletionsForDate(day, !allCompleted)}
+                   className={`group flex items-center justify-center p-1.5 rounded-lg transition-all duration-200 ${
+                     allCompleted 
+                       ? 'text-green-500 bg-green-500/10 hover:bg-green-500/20' 
+                       : 'text-gcal-muted hover:text-gcal-blue bg-gcal-surface/50 hover:bg-gcal-surface'
+                   }`}
+                   title={allCompleted ? "Clear all completions for this day" : "Complete all habits for this day"}
+                 >
+                   {allCompleted ? (
+                     <CheckCircle2 size={16} className="animate-in zoom-in-50" />
+                   ) : (
+                     <Circle size={16} />
+                   )}
+                 </button>
                </div>
              );
            })}  

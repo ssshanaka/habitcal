@@ -68,6 +68,7 @@ function App() {
     saveHabit,
     deleteHabit,
     setTodayForAll,
+    setCompletionsForDate,
     moveHabit,
     clearAllCompletions
   } = useHabits(user, loading, addToast);
@@ -722,6 +723,7 @@ function App() {
           completions={completions}
           isCompleted={isCompleted}
           toggleCompletion={toggleCompletion}
+          setCompletionsForDate={setCompletionsForDate}
           openEditModal={openEditModal}
           handleDeleteHabit={handleDeleteHabit}
           moveHabit={moveHabit}
