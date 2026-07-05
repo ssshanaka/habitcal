@@ -67,10 +67,10 @@ const HabitRow: React.FC<HabitRowProps> = ({
                        {habit.category}
                      </span>
                    )}
-                   {dependencyHabit && (
-                     <span className="text-[10px] font-bold uppercase tracking-wider text-gcal-blue px-1.5 py-0.5 rounded bg-gcal-blue/10 w-fit flex items-center gap-1">
+                 {dependencyHabit && (
+                     <div className="text-[10px] font-bold uppercase tracking-wider text-gcal-blue px-1.5 py-0.5 rounded bg-gcal-blue/10 w-fit flex items-center gap-1 border border-gcal-blue/20">
                        <Link2 size={8} /> {dependencyHabit.title}
-                     </span>
+                     </div>
                    )}
                  </div>
                </div>
@@ -165,10 +165,10 @@ const HabitRow: React.FC<HabitRowProps> = ({
           return (
             <div 
               key={`${habit.id}-${i}`} 
-              className={`border-r border-gcal-border last:border-r-0 flex items-center justify-center relative ${!isScheduled ? 'bg-gcal-muted/10' : (isLocked ? 'bg-red-500/5' : '')}`}
+              className={`border-r border-gcal-border last:border-r-0 flex items-center justify-center relative ${!isScheduled ? 'bg-gcal-muted/10' : (isLocked ? 'bg-red-500/[0.03]' : '')}`}
             >
                {habit.dependencyId && (
-                 <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gcal-blue/50" />
+                 <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gcal-blue/30" />
                )}
                {isScheduled ? (
                  <label className={`cursor-pointer w-full h-full flex items-center justify-center transition-all duration-200 ${isLocked ? 'cursor-not-allowed group/locked' : 'hover:bg-gcal-muted/5 hover:scale-105'}`}>
@@ -184,7 +184,7 @@ const HabitRow: React.FC<HabitRowProps> = ({
                        completed 
                          ? `bg-opacity-30 border-transparent shadow-lg scale-110` 
                          : isLocked 
-                          ? 'border-gcal-muted/30 bg-gcal-muted/5'
+                          ? 'border-gcal-muted/20 bg-gcal-muted/5'
                           : 'border-gcal-border hover:border-gcal-blue hover:scale-105'
                      }`}
                      style={{ 
@@ -196,12 +196,12 @@ const HabitRow: React.FC<HabitRowProps> = ({
                      {completed ? (
                        <Check size={24} style={{ color: 'var(--gcal-bg-solid)' }} strokeWidth={3} className="animate-in" />
                      ) : isLocked ? (
-                       <Lock size={16} className="text-gcal-muted/40" />
+                       <Lock size={16} className="text-red-400/50" />
                      ) : null}
                    </div>
                    {isLocked && (
-                     <div className="absolute top-1 right-1 opacity-0 group-hover/locked:opacity-100 bg-gcal-text text-gcal-bg text-[10px] px-2 py-1 rounded shadow-lg z-10 pointer-events-none whitespace-nowrap">
-                       Locked: Finish {dependencyHabit?.title}
+                     <div className="absolute -top-6 right-0 bg-red-600 text-white text-[10px] px-2 py-1 rounded shadow-lg z-20 pointer-events-none whitespace-nowrap opacity-0 group-hover/locked:opacity-100 transition-opacity">
+                       LOCKED: Complete "{dependencyHabit?.title}" first
                      </div>
                    )}
                  </label>
