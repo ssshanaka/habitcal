@@ -42,6 +42,9 @@ const HabitRow: React.FC<HabitRowProps> = ({
   const [isTimerActive, setIsTimerActive] = useState(false);
 
   const dependencyHabit = allHabits.find(h => h.id === habit.dependencyId);
+  const isProvider = allHabits.some(h => h.dependencyId === habit.id);
+  const isDependent = !!habit.dependencyId;
+  const isPartOfChain = isProvider || isDependent;
 
   const monthlyProgress = useMemo(() => {
     if (!habit.goalCount) return null;
@@ -57,6 +60,9 @@ const HabitRow: React.FC<HabitRowProps> = ({
         className="w-48 md:w-72 flex-shrink-0 border-r border-gcal-border p-4 flex flex-col justify-center relative group/habit cursor-pointer hover:bg-gcal-surface/50 transition-all duration-200"
         onClick={() => openEditModal(habit)}
       >
+         {isProvider && (
+           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-gcal-blue/40 rounded-r-full shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+         )}
          <div className="pr-8">
             <div className="flex items-center justify-between mb-1">
                <div className="flex flex-col">
@@ -67,9 +73,10 @@ const HabitRow: React.FC<HabitRowProps> = ({
                        {habit.category}
                      </span>
                    )}
-                 {dependencyHabit && (
+                   {isPartOfChain && (
                      <div className="text-[10px] font-bold uppercase tracking-wider text-gcal-blue px-1.5 py-0.5 rounded bg-gcal-blue/10 w-fit flex items-center gap-1 border border-gcal-blue/20">
-                       <Link2 size={8} /> {dependencyHabit.title}
+                       <Link2 size={8} />
+                       {isDependent ? `Chain: ${dependencyHabit?.title}` : (isProvider ? 'Anchor' : 'Chain')}
                      </div>
                    )}
                  </div>
