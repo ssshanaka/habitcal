@@ -142,5 +142,30 @@ export const calculateStreak = (
     checkDate = getPreviousDay(checkDate);
   }
   
-  return streak;
+/**
+ * Returns a history of completion status for the last N days.
+ * @param habitId - The ID of the habit
+ * @param completions - Record of completions
+ * @param daysCount - Number of days to look back
+ * @returns Array of booleans representing completion status
+ */
+export const getRecentCompletionHistory = (
+  habitId: string,
+  completions: Record<string, boolean | { completed: boolean; timestamp: string }>,
+  daysCount: number = 7
+): boolean[] => {
+  const history: boolean[] = [];
+  const today = new Date();
+
+  for (let i = 0; i < daysCount; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const dateKey = formatDateKey(d);
+    const completionKey = `${habitId}_${dateKey}`;
+    const comp = completions[completionKey];
+    const isCompleted = typeof comp === 'boolean' ? comp : comp?.completed;
+    history.push(!!isCompleted);
+  }
+  // Return in chronological order (oldest to newest)
+  return history.reverse();
 };

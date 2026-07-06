@@ -227,25 +227,47 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
-/* Selection */
-::selection {
-  background: var(--gcal-blue);
-  color: white;
+/* Theme Overrides */
+.theme-focus {
+  --gcal-bg: #000000;
+  --gcal-bg-solid: #000000;
+  --gcal-surface: rgba(20, 20, 20, 0.9);
+  --gcal-surface-solid: #121212;
+  --gcal-border: #333333;
+  --gcal-text: #ffffff;
+  --gcal-muted: #888888;
+  --gcal-blue: #00f2fe;
+  --gcal-blue-hover: #00d1db;
+  --gcal-fab: #121212;
+  --gcal-fab-hover: #1a1a1a;
+  --gradient-primary: linear-gradient(135deg, #00f2fe 0%, #00f2fe 100%);
+  --gradient-secondary: linear-gradient(135deg, #ffffff 0%, #cccccc 100%);
+  --gradient-success: linear-gradient(135deg, #00ff00 0%, #00ff00 100%);
+  --gradient-warm: linear-gradient(135deg, #ff0000 0%, #ff0000 100%);
+  --glass-bg: rgba(18, 18, 18, 0.8);
+  --glass-popup: rgba(25, 25, 25, 0.98);
+  --glass-border: #444444;
+  --glass-shadow: 0 0 0 1px #333333;
 }
 
-::-moz-selection {
-  background: var(--gcal-blue);
-  color: white;
-}
-
-/* Focus Styles */
-*:focus-visible {
-  outline: 2px solid var(--gcal-blue);
-  outline-offset: 2px;
-}
-
-/* Disabled Elements */
-*:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.theme-zen {
+  --gcal-bg: linear-gradient(135deg, #eef2f3 0%, #8e9eab 100%);
+  --gcal-bg-solid: #fdfbfb;
+  --gcal-surface: rgba(255, 255, 255, 0.6);
+  --gcal-surface-solid: #ffffff;
+  --gcal-border: rgba(0, 0, 0, 0.05);
+  --gcal-text: #5a67d8;
+  --gcal-muted: #a0aec0;
+  --gcal-blue: #9fb8ad;
+  --gcal-blue-hover: #b8ccc4;
+  --gcal-fab: rgba(255, 255, 255, 0.8);
+  --gcal-fab-hover: rgba(255, 255, 255, 1);
+  --gradient-primary: linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%);
+  --gradient-secondary: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
+  --gradient-success: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+  --gradient-warm: linear-gradient(135deg, #fff1eb 0%, #ace0f9 100%);
+  --glass-bg: rgba(255, 255, 255, 0.4);
+  --glass-popup: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }

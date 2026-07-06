@@ -34,6 +34,7 @@ import { calculateDailyDensity } from './utils/analysis';
 import { Habit, SortMode, HabitEnvironment } from './types';
 import { Button } from './components/Button';
 import { Modal } from './components/Modal';
+import { useTheme, ThemeMode } from './hooks/useTheme';
 import { useAuth } from './hooks/useAuth';
 import { useHabits } from './hooks/useHabits';
 import { useNotifications } from './hooks/useNotifications';
@@ -128,7 +129,7 @@ function App() {
   const [todayFocusOnly, setTodayFocusOnly] = useState(false);
   const [focusModeActive, setFocusModeActive] = useState(false);
   const [showHabitDetails, setShowHabitDetails] = useState(false);
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const { mode: themeMode, setMode: setThemeMode } = useTheme();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNoticeOpen, setIsNoticeOpen] = useState(false);
@@ -228,19 +229,6 @@ function App() {
   }, [completions]);
 
   // --- Effects ---
-
-  // 1. Theme (Independent)
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('habitCal_theme') as 'light' | 'dark' | null;
-    if (savedTheme) setTheme(savedTheme);
-  }, []);
-
-  useEffect(() => {
-    const html = document.documentElement;
-    if (theme === 'dark') html.classList.add('dark');
-    else html.classList.remove('dark');
-    localStorage.setItem('habitCal_theme', theme);
-  }, [theme]);
 
   // Notice Modal Check
   useEffect(() => {
@@ -587,31 +575,54 @@ function App() {
                  <div className="p-4 border-b border-gcal-border">
                    <h3 className="text-xs font-bold text-gcal-muted uppercase tracking-wider">Settings</h3>
                  </div>
-                 <div className="p-3">
-                   <button 
-                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                     className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-gcal-surface/50 transition-all text-sm font-medium"
-                   >
-                     <div className="flex items-center gap-3">
-                       {theme === 'dark' ? <Moon size={18} className="text-gcal-blue" /> : <Sun size={18} className="text-gcal-blue" />}
-                       <span>Dark mode</span>
-                     </div>
-                     <div className={`w-11 h-6 rounded-full relative transition-all shadow-inner ${theme === 'dark' ? 'bg-gradient-to-r from-gcal-blue to-purple-500' : 'bg-gcal-muted'}`}>
-                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${theme === 'dark' ? 'left-6' : 'left-1'}`} />
-                     </div>
-                   </button>
-                   <button 
-                     onClick={toggleNotifications}
-                     className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-gcal-surface/50 transition-all text-sm font-medium"
-                   >
-                     <div className="flex items-center gap-3">
-                       <Zap size={18} className="text-gcal-blue" />
-                       <span>Notifications</span>
-                     </div>
-                     <div className={`w-11 h-6 rounded-full relative transition-all shadow-inner ${notificationsEnabled ? 'bg-gradient-to-r from-gcal-blue to-purple-500' : 'bg-gcal-muted'}`}>
-                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${notificationsEnabled ? 'left-6' : 'left-1'}`} />
-                     </div>
-                   </button>
+                 <div className="p-3 flex flex-col gap-4">
+                   <div className="flex flex-col gap-1">
+                     <span className="text-[10px] font-bold text-gcal-muted uppercase px-3">Appearance</span>
+                     <button 
+                       onClick={() => setThemeMode('light')}
+                       className={`w-full flex items-center gap-3 p-2 px-3 rounded-xl transition-all text-sm ${themeMode === 'light' ? 'bg-gcal-blue/10 text-gcal-blue' : 'hover:bg-gcal-surface/50 text-gcal-text'}`}
+                     >
+                       <Sun size={16} />
+                       <span>Light</span>
+                     </button>
+                     <button 
+                       onClick={() => setThemeMode('dark')}
+                       className={`w-full flex items-center gap-3 p-2 px-3 rounded-xl transition-all text-sm ${themeMode === 'dark' ? 'bg-gcal-blue/10 text-gcal-blue' : 'hover:bg-gcal-surface/50 text-gcal-text'}`}
+                     >
+                       <Moon size={16} />
+                       <span>Dark</span>
+                     </button>
+                     <button 
+                       onClick={() => setThemeMode('focus')}
+                       className={`w-full flex items-center gap-3 p-2 px-3 rounded-xl transition-all text-sm ${themeMode === 'focus' ? 'bg-gcal-blue/10 text-gcal-blue' : 'hover:bg-gcal-surface/50 text-gcal-text'}`}
+                     >
+                       <Target size={16} />
+                       <span>Focus</span>
+                     </button>
+                     <button 
+                       onClick={() => setThemeMode('zen')}
+                       className={`w-full flex items-center gap-3 p-2 px-3 rounded-xl transition-all text-sm ${themeMode === 'zen' ? 'bg-gcal-blue/10 text-gcal-blue' : 'hover:bg-gcal-surface/50 text-gcal-text'}`}
+                     >
+                       <Sparkles size={16} />
+                       <span>Zen</span>
+                     </button>
+                   </div>
+
+                   <div className="flex flex-col gap-1">
+                     <span className="text-[10px] font-bold text-gcal-muted uppercase px-3">Notifications</span>
+                     <button 
+                       onClick={toggleNotifications}
+                       className="w-full flex items-center justify-between p-2 px-3 rounded-xl hover:bg-gcal-surface/50 transition-all text-sm font-medium"
+                     >
+                       <div className="flex items-center gap-3">
+                         <Zap size={18} className="text-gcal-blue" />
+                         <span>Notifications</span>
+                       </div>
+                       <div className={`w-11 h-6 rounded-full relative transition-all shadow-inner ${notificationsEnabled ? 'bg-gradient-to-r from-gcal-blue to-purple-500' : 'bg-gcal-muted'}`}>
+                         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${notificationsEnabled ? 'left-6' : 'left-1'}`} />
+                       </div>
+                     </button>
+                   </div>
                  </div>
               </div>
             )}
