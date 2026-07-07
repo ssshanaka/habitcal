@@ -20,6 +20,7 @@ interface HabitRowProps {
   streak: number;
   onTimerStop: (habitId: string, minutes: number) => void;
   allHabits: Habit[];
+  isSpotlight?: boolean;
 }
 
 const HabitRow: React.FC<HabitRowProps> = ({
@@ -37,7 +38,8 @@ const HabitRow: React.FC<HabitRowProps> = ({
   todayFocusOnly,
   streak,
   onTimerStop,
-  allHabits
+  allHabits,
+  isSpotlight = false
 }) => {
   const [isTimerActive, setIsTimerActive] = useState(false);
 
@@ -54,12 +56,24 @@ const HabitRow: React.FC<HabitRowProps> = ({
   }, [habit.id, habit.goalCount, completions]);
 
   return (
-    <div className="flex border-b border-gcal-border hover:bg-gcal-surface/50 group transition-all duration-200 min-h-[90px] hover:shadow-md">
+    <div className={`flex border-b border-gcal-border hover:bg-gcal-surface/50 group transition-all duration-200 min-h-[90px] hover:shadow-md ${
+      isSpotlight 
+        ? 'ring-2 ring-gcal-blue ring-inset bg-gcal-blue/5 animate-pulse-slow' 
+        : ''
+    }`}>
       {/* Habit Info Column */}
       <div 
-        className="w-48 md:w-72 flex-shrink-0 border-r border-gcal-border p-4 flex flex-col justify-center relative group/habit cursor-pointer hover:bg-gcal-surface/50 transition-all duration-200"
+        className={`w-48 md:w-72 flex-shrink-0 border-r border-gcal-border p-4 flex flex-col justify-center relative group/habit cursor-pointer hover:bg-gcal-surface/50 transition-all duration-200 ${
+          isSpotlight ? 'bg-gcal-blue/5' : ''
+        }`}
         onClick={() => openEditModal(habit)}
       >
+         {isSpotlight && (
+           <div className="absolute -top-2 -left-1 px-2 py-0.5 rounded bg-gcal-blue text-white text-[9px] font-black uppercase tracking-tighter shadow-lg z-10 flex items-center gap-1">
+             <Sparkles size={8} />
+             Spotlight
+           </div>
+         )}
          {isProvider && (
            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-gcal-blue/40 rounded-r-full shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
          )}

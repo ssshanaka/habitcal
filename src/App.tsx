@@ -48,11 +48,14 @@ import { useToast } from './hooks/useToast';
 import { habitsService } from './services/habits';
 import { syncService } from './services/sync';
 import { externalSyncService } from './services/externalSync';
+import { CalendarSettingsModal } from './components/CalendarSettingsModal';
 import FocusMode from './components/FocusMode';
 import HabitGrid from './components/HabitGrid';
 import Sidebar from './components/Sidebar';
 import HabitModal from './components/HabitModal';
 import { AIRoutineArchitect } from './components/AIRoutineArchitect';
+import HabitGarden from './components/HabitGarden';
+import RoutineConsultant from './components/RoutineConsultant';
 
 function App() {
   // --- Auth ---
@@ -134,6 +137,8 @@ function App() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNoticeOpen, setIsNoticeOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCalendarSettingsOpen, setIsCalendarSettingsOpen] = useState(false);
+  const [view, setView] = useState<'grid' | 'garden' | 'consultant'>('grid');
   
   // Focus Mode Habit
   const focusedHabit = useMemo(() => {
@@ -242,6 +247,16 @@ function App() {
     localStorage.setItem('habitCal_notice_acknowledged', 'true');
     setIsNoticeOpen(false);
   };
+
+  useEffect(() => {
+    const handleOptimizeLoad = () => {
+      setIsAIArchitectOpen(true);
+      addToast('AI Architect: Analyzing load for optimization...', 'info');
+    };
+
+    window.addEventListener('open-ai-architect', handleOptimizeLoad);
+    return () => window.removeEventListener('open-ai-architect', handleOptimizeLoad);
+  }, []);
 
   // 2. Auth Reminder Timer
   useEffect(() => {
@@ -697,6 +712,10 @@ function App() {
               </div>
               <Sidebar
                 openCreateModal={() => { openCreateModal(); setIsSidebarOpen(false); }}
+                onExternalSync={handleExternalSync}
+                onOpenCalendarSettings={() => setIsCalendarSettingsOpen(true)}
+                setView={setView}
+                currentView={view}
                 sortMode={sortMode}
                 setSortMode={setSortMode}
                 todayFocusOnly={todayFocusOnly}
@@ -706,7 +725,6 @@ function App() {
                 weeklyProgressPercent={weeklyProgressPercent}
                 setTodayForAllHabits={setTodayForAllHabits}
                 heatmapData={heatmapData}
-                onExternalSync={handleExternalSync}
               />
             </div>
           </div>
@@ -717,6 +735,10 @@ function App() {
           <div className="hidden lg:block">
             <Sidebar
               openCreateModal={openCreateModal}
+              onExternalSync={handleExternalSync}
+              onOpenCalendarSettings={() => setIsCalendarSettingsOpen(true)}
+              setView={setView}
+              currentView={view}
               sortMode={sortMode}
               setSortMode={setSortMode}
               todayFocusOnly={todayFocusOnly}
@@ -732,24 +754,39 @@ function App() {
         )}
 
         {/* --- Grid View --- */}
-        <HabitGrid
-          allHabits={habits}
-          allHabitsCount={habits.length}
-          visibleHabits={visibleHabits}
-          weekDays={weekDays}
-          completions={completions}
-          isCompleted={isCompleted}
-          toggleCompletion={toggleCompletion}
-          setCompletionsForDate={setCompletionsForDate}
-          openEditModal={openEditModal}
-          handleDeleteHabit={handleDeleteHabit}
-          moveHabit={moveHabit}
-          sortMode={sortMode}
-          todayFocusOnly={todayFocusOnly}
-          streaks={streaks}
-          openCreateModal={openCreateModal}
-          onTimerStop={handleTimerStop}
-        />
+        {view === 'grid' ? (
+          <HabitGrid
+            allHabits={habits}
+            allHabitsCount={habits.length}
+            visibleHabits={visibleHabits}
+            weekDays={weekDays}
+            completions={completions}
+            isCompleted={isCompleted}
+            toggleCompletion={toggleCompletion}
+            setCompletionsForDate={setCompletionsForDate}
+            openEditModal={openEditModal}
+            handleDeleteHabit={handleDeleteHabit}
+            moveHabit={moveHabit}
+            sortMode={sortMode}
+            todayFocusOnly={todayFocusOnly}
+            streaks={streaks}
+            openCreateModal={openCreateModal}
+            onTimerStop={handleTimerStop}
+          />
+        ) : view === 'garden' ? (
+          <HabitGarden 
+            habits={habits} 
+            completions={completions} 
+            onHabitClick={openEditModal} 
+            onBack={() => setView('grid')} 
+          />
+        ) : (
+          <RoutineConsultant 
+            habits={habits} 
+            completions={completions} 
+            onBack={() => setView('grid')} 
+          />
+        )}
       </div>
 
       {/* --- Add/Edit Habit Modal --- */}

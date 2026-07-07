@@ -68,6 +68,7 @@ export const generateProactiveInsight = (
 
       if (isVulnerable) {
         finalInsights.push({
+          habitId: habit.id,
           habitTitle: habit.title,
           message: `It's raining, and your momentum for "${habit.title}" has been dipping lately.${timeContext} 🌧️ I highly recommend swapping this for ${suggestedSwap} today to protect your streak!`,
           type: 'warning',
@@ -76,6 +77,7 @@ export const generateProactiveInsight = (
         });
       } else {
         finalInsights.push({
+          habitId: habit.id,
           habitTitle: habit.title,
           message: `It's raining outside!${timeContext} 🌧️ Instead of "${habit.title}", how about ${suggestedSwap} to keep your streak alive?`,
           type: 'warning',
@@ -93,6 +95,7 @@ export const generateProactiveInsight = (
 
       if (isVulnerable) {
         finalInsights.push({
+          habitId: habit.id,
           habitTitle: habit.title,
           message: `The sun is out! ☀️ This is the perfect opportunity to boost your momentum with "${habit.title}" and get back on track.${timeContext}`,
           type: 'positive',
@@ -101,6 +104,7 @@ export const generateProactiveInsight = (
         });
       } else {
         finalInsights.push({
+          habitId: habit.id,
           habitTitle: habit.title,
           message: `Perfect sunny weather! ☀️ It's a great day to get your "${habit.title}" done outdoors and soak up some Vitamin D.${timeContext}`,
           type: 'positive',
@@ -118,6 +122,7 @@ export const generateProactiveInsight = (
 
       if (isVulnerable) {
         finalInsights.push({
+          habitId: habit.id,
           habitTitle: habit.title,
           message: `It's quite windy today! 💨 Given your recent patterns, this might be a tough day for "${habit.title}.${timeContext} Consider a wind-shielded alternative.`,
           type: 'warning',
@@ -126,6 +131,7 @@ export const generateProactiveInsight = (
         });
       } else {
         finalInsights.push({
+          habitId: habit.id,
           habitTitle: habit.title,
           message: `It's quite windy today! 💨 If your "${habit.title}" is wind-sensitive, you might want to adjust your plan.${timeContext}`,
           type: 'warning',

@@ -134,6 +134,17 @@ body {
   }
 }
 
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.005);
+  }
+}
+
 @keyframes glow {
   0%, 100% {
     box-shadow: 0 0 5px var(--gcal-blue), 0 0 10px var(--gcal-blue);

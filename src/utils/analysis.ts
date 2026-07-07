@@ -2,6 +2,7 @@ import { Habit } from '../types';
 import { formatDateKey, getPreviousDay } from './index';
 
 export interface Insight {
+  habitId: string;
   habitTitle: string;
   message: string;
   type: 'warning' | 'positive' | 'neutral';
@@ -119,6 +120,7 @@ export const analyzeHabitPatterns = (
 
     if (weakestDayIdx !== -1 && minRate < 0.5 && completedDays > 0) {
       insights.push({
+        habitId: habit.id,
         habitTitle: habit.title,
         message: `I've noticed your consistency with "${habit.title}" often dips on ${daysOfWeek[weakestDayIdx]}s. Try scheduling it at a different time or setting a stronger reminder for that day.`,
         type: 'warning',
@@ -130,6 +132,7 @@ export const analyzeHabitPatterns = (
     // 2. High Success Rate (Positive reinforcement)
     if (successRate > 0.8 && completedDays > 5) {
       insights.push({
+        habitId: habit.id,
         habitTitle: habit.title,
         message: `You're absolutely crushing "${habit.title}" with a ${Math.round(successRate * 100)}% success rate this month! Your momentum is incredible.`,
         type: 'positive',
@@ -141,6 +144,7 @@ export const analyzeHabitPatterns = (
     // 3. Recovery Opportunity (Low success but recent win)
     if (successRate < 0.3 && history[0].completed) {
       insights.push({
+        habitId: habit.id,
         habitTitle: habit.title,
         message: `Great job getting back on track with "${habit.title}" today! Let's turn this into a new streak.`,
         type: 'positive',

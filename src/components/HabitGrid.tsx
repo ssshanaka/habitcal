@@ -4,6 +4,10 @@ import { Habit, SortMode } from '../types';
 import { isSameDay } from '../utils';
 import { Button } from './Button';
 import HabitRow from './HabitRow';
+import NextUpSpotlight from './NextUpSpotlight';
+import { useWeather } from '../hooks/useWeather';
+import { generateProactiveInsight } from '../services/proactiveCoach';
+import { useMemo } from 'react';
 
 interface HabitGridProps {
   allHabits: Habit[];
@@ -43,6 +47,15 @@ const HabitGrid: React.FC<HabitGridProps> = ({
   onTimerStop
 }) => {
   const today = new Date();
+  const { weather, loading: weatherLoading } = useWeather();
+
+  const topInsight = useMemo(() => {
+    if (weatherLoading) return null;
+    const insights = generateProactiveInsight(allHabits, completions, weather, today);
+    return insights.length > 0 ? insights[0] : null;
+  }, [allHabits, completions, weather, weatherLoading]);
+
+  const topInsightHabitId = topInsight?.habitId;
 
   const handleTimerStop = (habitId: string, minutes: number) => {
     onTimerStop(habitId, minutes);
@@ -50,6 +63,7 @@ const HabitGrid: React.FC<HabitGridProps> = ({
 
   return (
     <main className="flex-1 flex flex-col overflow-hidden relative z-0">
+      <NextUpSpotlight insight={topInsight} />
       {/* Grid Header (Days) */}
       <div className="flex border-b border-gcal-border flex-shrink-0 transition-colors duration-300 glassmorphism" style={{
         background: 'var(--glass-bg)',
@@ -164,6 +178,7 @@ const HabitGrid: React.FC<HabitGridProps> = ({
                    streak={streaks[habit.id] || 0}
                    onTimerStop={handleTimerStop}
                    allHabits={visibleHabits}
+                   isSpotlight={habit.id === topInsightHabitId}
                  />
                );
 

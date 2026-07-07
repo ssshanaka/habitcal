@@ -114,6 +114,15 @@ export function useHabits(user: any, loading: boolean, addToast?: (message: stri
     if (user) {
       try {
         await habitsService.toggleCompletion(habitId, date, isNowCompleted);
+        
+        // Bi-directional sync: Push to calendar if completed
+        if (isNowCompleted) {
+          import('../services/externalSync').then(({ externalSyncService }) => {
+            externalSyncService.pushHabitToCalendar(habit.title, date).catch(err => {
+              console.error('Failed to push habit completion to calendar:', err);
+            });
+          });
+        }
       } catch (err) {
         // Rollback to previous state
         setCompletions(prev => {

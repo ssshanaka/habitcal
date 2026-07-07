@@ -1,55 +1,48 @@
 import { habitsService } from './habits';
-import { Habit } from '@/types';
-
-export interface ExternalEvent {
-  keyword: string;
-  timestamp: Date;
-  value?: number;
-  unit?: string;
-}
-
-/**
- * Simulates an external API (like Google Calendar or Apple Health) 
- * that returns events or metrics.
- */
-async function fetchMockExternalEvents(): Promise<ExternalEvent[]> {
-  console.log('Fetching mock external events...');
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 800));
-
-  // In a real app, this would be a fetch call to an API
-  const today = new Date();
-  return [
-    { keyword: 'Gym', timestamp: today },
-    { keyword: 'Read', timestamp: today },
-    { keyword: 'Water', timestamp: today },
-    { keyword: 'Meditation', timestamp: today },
-    { keyword: 'Exercise', timestamp: today },
-  ];
-}
+import { calendarManager } from './calendar/manager';
+import { CalendarEvent } from './calendar/types';
 
 export const externalSyncService = {
   /**
-   * Syncs external events to habit completions.
-   * Matches external keywords against habit titles.
+   * Syncs external calendar events to habit completions.
+   * Matches calendar event summaries against habit titles.
    */
   async syncExternalEvents() {
     try {
+      const provider = calendarManager.getProvider();
+      if (provider === 'none') {
+        console.log('No calendar provider configured. Skipping external sync.');
+        return { success: false, reason: 'No provider configured' };
+      }
+
+      const adapter = await calendarManager.getAdapter();
+      
+      // Check auth
+      try {
+        // In a real app, we'd check if the token is expired
+        // For this implementation, we assume if they have a provider, they are authed
+        // or the adapter handles it.
+      } catch (e) {
+        return { success: false, reason: 'Authentication failed' };
+      }
+
       const habits = await habitsService.fetchHabits();
-      const externalEvents = await fetchMockExternalEvents();
       const today = new Date();
+      const tomorrow = new Date();
+      tomorrow.setDate(today.getDate() + 1);
+
+      const externalEvents = await adapter.fetchEvents(today, tomorrow);
       let matchedCount = 0;
 
-      console.log(`Analyzing ${externalEvents.length} external events against ${habits.length} habits...`);
+      console.log(`Analyzing ${externalEvents.length} calendar events against ${habits.length} habits...`);
 
       for (const event of externalEvents) {
-        // Find a habit that matches the keyword in its title
         const matchingHabit = habits.find(h => 
-          h.title.toLowerCase().includes(event.keyword.toLowerCase())
+          h.title.toLowerCase().includes(event.summary.toLowerCase())
         );
 
         if (matchingHabit) {
-          console.log(`Match found: External event "${event.keyword}" -> Habit "${matchingHabit.title}"`);
+          console.log(`Match found: Calendar event "${event.summary}" -> Habit "${matchingHabit.title}"`);
           await habitsService.toggleCompletion(matchingHabit.id, today, true);
           matchedCount++;
         }
@@ -60,6 +53,32 @@ export const externalSyncService = {
     } catch (error) {
       console.error('External sync failed:', error);
       throw error;
+    }
+  },
+
+  /**
+   * Pushes a habit completion to the external calendar.
+   * Bi-directional sync: HabitCal -> External
+   */
+  async pushHabitToCalendar(habitTitle: string, date: Date) {
+    try {
+      const provider = calendarManager.getProvider();
+      if (provider === 'none') return { success: false, reason: 'No provider configured' };
+
+      const adapter = await calendarManager.getAdapter();
+      
+      const eventId = await adapter.createEvent({
+        summary: `✅ Habit Completed: ${habitTitle}`,
+        start: date,
+        end: new Date(date.getTime() + 15 * 60000), // 15 min event
+        description: 'Automatically synced from HabitCal',
+      });
+
+      console.log(`Pushed habit "${habitTitle}" to ${provider} calendar. Event ID: ${eventId}`);
+      return { success: true, eventId };
+    } catch (error) {
+      console.error('Failed to push habit to calendar:', error);
+      return { success: false, error: (error as Error).message };
     }
   }
 };

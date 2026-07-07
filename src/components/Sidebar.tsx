@@ -4,7 +4,9 @@ import {
   Target, 
   Sparkles, 
   BarChart3,
-  RefreshCw
+  RefreshCw,
+  Calendar,
+  BrainCircuit
 } from 'lucide-react';
 import { Button } from './Button';
 import { HeatmapCalendar } from './HeatmapCalendar';
@@ -13,6 +15,9 @@ import { SortMode } from '../types';
 interface SidebarProps {
   openCreateModal: () => void;
   onExternalSync: () => Promise<void>;
+  onOpenCalendarSettings: () => void;
+  setView: (view: 'grid' | 'garden' | 'consultant') => void;
+  currentView: 'grid' | 'garden' | 'consultant';
   sortMode: SortMode;
   setSortMode: (mode: SortMode) => void;
   todayFocusOnly: boolean;
@@ -33,6 +38,9 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({
   openCreateModal,
   onExternalSync,
+  onOpenCalendarSettings,
+  setView,
+  currentView,
   sortMode,
   setSortMode,
   todayFocusOnly,
@@ -88,6 +96,40 @@ const Sidebar: React.FC<SidebarProps> = ({
           <span className="text-gcal-muted">{todayFocusOnly ? 'On' : 'Off'}</span>
         </button>
         <button
+          onClick={() => setView(currentView === 'grid' ? 'garden' : 'grid')}
+          className={`w-full text-left flex items-center justify-between gap-2 glassmorphism p-3 rounded-2xl transition-all hover:shadow-md text-sm ${
+            currentView === 'garden' ? 'ring-1 ring-gcal-blue' : ''
+          }`}
+          style={{
+            background: 'var(--glass-bg)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+          }}
+        >
+          <span className="flex items-center gap-2 font-medium">
+            <Sparkles size={14} />
+            {currentView === 'garden' ? 'Return to Grid' : 'Visit Garden'}
+          </span>
+          <span className="text-gcal-muted">{currentView === 'garden' ? 'Grid' : 'Garden'}</span>
+        </button>
+        <button
+          onClick={() => setView(currentView === 'grid' ? 'consultant' : 'grid')}
+          className={`w-full text-left flex items-center justify-between gap-2 glassmorphism p-3 rounded-2xl transition-all hover:shadow-md text-sm ${
+            currentView === 'consultant' ? 'ring-1 ring-gcal-blue' : ''
+          }`}
+          style={{
+            background: 'var(--glass-bg)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+          }}
+        >
+          <span className="flex items-center gap-2 font-medium">
+            <BrainCircuit size={14} />
+            {currentView === 'consultant' ? 'Back to Grid' : 'Routine Advisor'}
+          </span>
+          <span className="text-gcal-muted">{currentView === 'consultant' ? 'Grid' : 'AI'}</span>
+        </button>
+        <button
           onClick={onExternalSync}
           className="w-full text-left flex items-center gap-2 glassmorphism p-3 rounded-2xl transition-all hover:shadow-md text-sm"
           style={{
@@ -99,6 +141,20 @@ const Sidebar: React.FC<SidebarProps> = ({
           <span className="flex items-center gap-2 font-medium">
             <RefreshCw size={14} />
             Sync External Data
+          </span>
+        </button>
+        <button
+          onClick={onOpenCalendarSettings}
+          className="w-full text-left flex items-center gap-2 glassmorphism p-3 rounded-2xl transition-all hover:shadow-md text-sm"
+          style={{
+            background: 'var(--glass-bg)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+          }}
+        >
+          <span className="flex items-center gap-2 font-medium">
+            <Calendar size={14} />
+            Calendar Setup
           </span>
         </button>
       </div>
