@@ -733,23 +733,22 @@ function App() {
         {/* --- Desktop Sidebar --- */}
         {isSidebarOpen && (
           <div className="hidden lg:block">
-            <Sidebar
-              openCreateModal={openCreateModal}
-              onExternalSync={handleExternalSync}
-              onOpenCalendarSettings={() => setIsCalendarSettingsOpen(true)}
-              setView={setView}
-              currentView={view}
-              sortMode={sortMode}
-              setSortMode={setSortMode}
-              todayFocusOnly={todayFocusOnly}
-              setTodayFocusOnly={(val) => setTodayFocusOnly(val)}
-              completionStats={completionStats}
-              todayProgressPercent={todayProgressPercent}
-              weeklyProgressPercent={weeklyProgressPercent}
-              setTodayForAllHabits={setTodayForAllHabits}
-              heatmapData={heatmapData}
-              onExternalSync={handleExternalSync}
-            />
+              <Sidebar
+                openCreateModal={openCreateModal}
+                onExternalSync={handleExternalSync}
+                onOpenCalendarSettings={() => setIsCalendarSettingsOpen(true)}
+                setView={setView}
+                currentView={view}
+                sortMode={sortMode}
+                setSortMode={setSortMode}
+                todayFocusOnly={todayFocusOnly}
+                setTodayFocusOnly={(val) => setTodayFocusOnly(val)}
+                completionStats={completionStats}
+                todayProgressPercent={todayProgressPercent}
+                weeklyProgressPercent={weeklyProgressPercent}
+                setTodayForAllHabits={setTodayForAllHabits}
+                heatmapData={heatmapData}
+              />
           </div>
         )}
 

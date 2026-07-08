@@ -141,9 +141,11 @@ export const calculateStreak = (
     }
     checkDate = getPreviousDay(checkDate);
   }
-  
+}
+
 /**
  * Returns a history of completion status for the last N days.
+
  * @param habitId - The ID of the habit
  * @param completions - Record of completions
  * @param daysCount - Number of days to look back

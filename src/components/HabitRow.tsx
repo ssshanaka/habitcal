@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Check, Trash2, Clock, ArrowUp, ArrowDown, Timer, Lock, Target, Link2 } from 'lucide-react';
+import { Check, Trash2, Clock, ArrowUp, ArrowDown, Timer, Lock, Target, Link2, Sparkles } from 'lucide-react';
 import { Habit, SortMode, HabitFrequency } from '../types';
 import { formatTime, calculateMonthlyCompletion } from '../utils';
 import HabitTimer from './HabitTimer';
+import Sparkline from './Sparkline';
 
 interface HabitRowProps {
   habit: Habit;
@@ -110,11 +111,19 @@ const HabitRow: React.FC<HabitRowProps> = ({
             <div className="flex items-center gap-3 mt-2">
               {/* Streak Counter */}
               {streak > 0 && (
-                <div className="flex items-center gap-1 text-xs">
-                  <span className="text-sm">🔥</span>
-                  <span className="font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-                    {streak} day{streak !== 1 ? 's' : ''}
-                  </span>
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm">🔥</span>
+                    <span className="font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
+                      {streak} day{streak !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <Sparkline 
+                    habitId={habit.id} 
+                    completions={completions} 
+                    isCompleted={isCompleted} 
+                    color={habit.color} 
+                  />
                 </div>
               )}
 
