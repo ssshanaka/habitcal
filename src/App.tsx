@@ -622,6 +622,13 @@ function App() {
                        <Sparkles size={16} />
                        <span>Zen</span>
                      </button>
+                     <button 
+                       onClick={() => setThemeMode('auto')}
+                       className={`w-full flex items-center gap-3 p-2 px-3 rounded-xl transition-all text-sm ${themeMode === 'auto' ? 'bg-gcal-blue/10 text-gcal-blue' : 'hover:bg-gcal-surface/50 text-gcal-text'}`}
+                     >
+                       <RefreshCw size={16} />
+                       <span>Auto (Dynamic)</span>
+                     </button>
                    </div>
 
                    <div className="flex flex-col gap-1">
