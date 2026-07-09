@@ -72,6 +72,14 @@ export interface CircleChallenge {
   created_at: string;
 }
 
+export interface CircleMember {
+  id: string;
+  circle_id: string;
+  user_id: string;
+  role: string;
+  created_at?: string;
+}
+
 export type ViewMode = 'week'; // Can be extended to month later
 
 export enum SortMode {

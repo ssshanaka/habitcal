@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Habit, SortMode } from '../types';
+import { Habit, SortMode, HabitFrequency } from '../types';
 import { habitsService } from '../services/habits';
 import { syncService } from '../services/sync';
 import { getWeekStart, getWeekDays, formatDateKey, calculateStreak } from '../utils';
@@ -12,9 +12,9 @@ export function useHabits(user: any, loading: boolean, addToast?: (message: stri
 
   // Default Data
   const DEFAULT_HABITS: Habit[] = [
-    { id: '11111111-1111-4111-8111-111111111111', title: 'Morning Jog', timeStart: '07:00', timeEnd: '07:30', color: '#4ade80', order: 0 },
-    { id: '22222222-2222-4222-8222-222222222222', title: 'Deep Work', timeStart: '09:00', timeEnd: '11:00', color: '#60a5fa', order: 1 },
-    { id: '33333333-3333-4333-8333-333333333333', title: 'Read Book', timeStart: '21:00', timeEnd: '21:30', color: '#facc15', order: 2 },
+    { id: '11111111-1111-4111-8111-111111111111', title: 'Morning Jog', timeStart: '07:00', timeEnd: '07:30', color: '#4ade80', order: 0, frequency: HabitFrequency.DAILY },
+    { id: '22222222-2222-4222-8222-222222222222', title: 'Deep Work', timeStart: '09:00', timeEnd: '11:00', color: '#60a5fa', order: 1, frequency: HabitFrequency.DAILY },
+    { id: '33333333-3333-4333-8333-333333333333', title: 'Read Book', timeStart: '21:00', timeEnd: '21:30', color: '#facc15', order: 2, frequency: HabitFrequency.DAILY },
   ];
 
   useEffect(() => {

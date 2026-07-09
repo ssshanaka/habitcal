@@ -138,7 +138,7 @@ const HabitGrid: React.FC<HabitGridProps> = ({
            </div>
          ) : (
            <>
-             {visibleHabits.reduce((acc: JSX.Element[], habit, index) => {
+             {visibleHabits.reduce((acc: React.ReactElement[], habit, index) => {
                const currentCat = habit.category || 'Uncategorized';
                const prevHabit = visibleHabits[index - 1];
                const prevCat = prevHabit ? (prevHabit.category || 'Uncategorized') : null;
