@@ -125,7 +125,7 @@ const HabitGarden: React.FC<HabitGardenProps> = ({ habits, completions, onHabitC
         <div className="absolute bottom-0 left-0 right-0 h-12 bg-green-500/40 backdrop-blur-sm border-t border-green-600/20 pointer-events-none" />
 
         {/* Plants Grid */}
-        <div className="relative z-10 flex flex-wrap justify-center items-end gap-x-16 gap-y-12 max-w-5xl">
+        <div className="relative z-10 flex flex-wrap justify-center items-end gap-x-8 gap-y-12 max-w-5xl">
           {habits.length === 0 ? (
             <div className="text-center py-20 text-sky-800/50 italic">
               Your garden is empty. Start planting habits!

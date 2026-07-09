@@ -65,13 +65,13 @@ const HabitGrid: React.FC<HabitGridProps> = ({
     <main className="flex-1 flex flex-col overflow-hidden relative z-0">
       <NextUpSpotlight insight={topInsight} />
       {/* Grid Header (Days) */}
-      <div className="flex border-b border-gcal-border flex-shrink-0 transition-colors duration-300 glassmorphism" style={{
+      <div className="flex border-b border-gcal-border flex-shrink-0 transition-colors duration-300 glassmorphism overflow-x-hidden" style={{
         background: 'var(--glass-bg)',
         backdropFilter: 'blur(10px)',
         WebkitBackdropFilter: 'blur(10px)',
       }}>
          {/* Empty corner for habit names */}
-         <div className="w-48 md:w-64 flex-shrink-0 border-r border-gcal-border p-4 flex items-end">
+         <div className="w-24 md:w-64 flex-shrink-0 border-r border-gcal-border p-4 flex items-end">
             <span className="text-xs font-bold text-gcal-muted uppercase tracking-wider">TIME</span>
          </div>
          

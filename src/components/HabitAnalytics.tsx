@@ -29,7 +29,7 @@ const HabitAnalytics: React.FC<HabitAnalyticsProps> = ({ habits, completions }) 
   const stats = calculateAnalytics(habits, completions);
 
   return (
-    <div className="p-6 flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="p-6 flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-y-auto h-full">
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-3xl font-black text-gcal-text">Consistency Analytics</h2>

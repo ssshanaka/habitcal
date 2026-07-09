@@ -160,7 +160,7 @@ const HabitRow: React.FC<HabitRowProps> = ({
             )}
          </div>
 
-         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5 bg-gcal-bg-solid/80 backdrop-blur-sm pl-2" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center gap-0.5 mb-2">
                 <HabitTimer 
                   onStop={(mins) => {
@@ -230,7 +230,7 @@ const HabitRow: React.FC<HabitRowProps> = ({
                      ) : null}
                    </div>
                    {isLocked && (
-                     <div className="absolute -top-6 right-0 bg-red-600 text-white text-[10px] px-2 py-1 rounded shadow-lg z-20 pointer-events-none whitespace-nowrap opacity-0 group-hover/locked:opacity-100 transition-opacity">
+                     <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[10px] px-2 py-1 rounded shadow-lg z-50 pointer-events-none whitespace-nowrap opacity-0 group-hover/locked:opacity-100 transition-opacity">
                        LOCKED: Complete "{dependencyHabit?.title}" first
                      </div>
                    )}
