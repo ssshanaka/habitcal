@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, Target, Flame, BarChart3, Award } from 'lucide-react';
+import { TrendingUp, Target, Flame, BarChart3, Award, Sparkles } from 'lucide-react';
 import { Habit } from '../types';
 import { calculateAnalytics, AnalyticsSummary } from '../utils/analytics';
 import { Button } from './Button';
@@ -36,7 +36,7 @@ const HabitAnalytics: React.FC<HabitAnalyticsProps> = ({ habits, completions }) 
           <p className="text-gcal-muted">Deep dive into your habit performance</p>
         </div>
         <div className="flex gap-2">
-           <Button variant="outline" onClick={() => window.print()} className="text-xs">Export Report</Button>
+           <Button variant="secondary" onClick={() => window.print()} className="text-xs">Export Report</Button>
         </div>
       </div>
 

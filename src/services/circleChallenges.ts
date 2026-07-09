@@ -1,5 +1,5 @@
-import { supabase } from '../../lib/supabase';
-import { CircleChallenge } from '../../types';
+import { supabase } from '../lib/supabase';
+import { CircleChallenge } from '../types';
 
 export const circleChallengesService = {
   async getChallenges(circleId: string): Promise<CircleChallenge[]> {

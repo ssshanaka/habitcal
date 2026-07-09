@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import { Button } from './Button';
-import { Habit } from '../types';
+import { Habit, HabitFrequency } from '../types';
 import { colors, categories } from '../utils';
 import { generateId } from '../utils';
 import { useToast } from '../hooks/useToast';
@@ -27,12 +27,12 @@ const convertTo24h = (timeStr: string): string => {
   let [hours, minutes] = time.split(':');
 
   if (!minutes) minutes = '00';
-  hours = parseInt(hours, 10);
+  let hoursNum = parseInt(hours, 10);
 
-  if (modifier === 'pm' && hours < 12) hours += 12;
-  if (modifier === 'am' && hours === 12) hours = 0;
+  if (modifier === 'pm' && hoursNum < 12) hoursNum += 12;
+  if (modifier === 'am' && hoursNum === 12) hoursNum = 0;
 
-  return `${String(hours).padStart(2, '0')}:${minutes}`;
+  return `${String(hoursNum).padStart(2, '0')}:${minutes}`;
 };
 
 const parseQuickAdd = (text: string) => {
@@ -103,6 +103,7 @@ export const QuickAddBar: React.FC<QuickAddBarProps> = ({ onAdd, currentHabitCou
         color: color || colors[0],
         category: category || categories[0],
         order: currentHabitCount,
+        frequency: HabitFrequency.DAILY,
       };
       
       await onAdd(newHabit);

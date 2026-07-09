@@ -8,11 +8,11 @@ import { Sparkles, Loader2, Check, X, Calendar, CloudRain, ArrowRight, Zap } fro
 
 interface AIRoutineArchitectProps {
   onPackageGenerated: (pkg: AIResponse) => void;
-  habits: Habit[];
-  saveHabit: (habit: Habit, isEdit: boolean) => Promise<void>;
+  habits?: Habit[];
+  saveHabit?: (habit: Habit, isEdit: boolean) => Promise<void>;
 }
 
-export function AIRoutineArchitect({ onPackageGenerated, habits, saveHabit }: AIRoutineArchitectProps) {
+export function AIRoutineArchitect({ onPackageGenerated, habits = [], saveHabit }: AIRoutineArchitectProps) {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AIResponse | null>(null);
@@ -53,6 +53,7 @@ export function AIRoutineArchitect({ onPackageGenerated, habits, saveHabit }: AI
   };
 
   const handleSwapHabit = async (suggestion: Suggestion) => {
+    if (!saveHabit) return;
     const habit = habits.find(h => h.id === suggestion.originalHabitId);
     if (!habit) return;
 
@@ -92,14 +93,16 @@ export function AIRoutineArchitect({ onPackageGenerated, habits, saveHabit }: AI
                       </div>
                       <p className="text-[10px] text-gcal-muted leading-tight">{s.reason}</p>
                     </div>
-                    <Button 
-                      variant="secondary" 
-                      className="text-[10px] px-3 py-1 h-auto flex items-center gap-1"
-                      onClick={() => handleSwapHabit(s)}
-                    >
-                      <Zap size={10} />
-                      Swap
-                    </Button>
+                    {saveHabit && (
+                      <Button 
+                        variant="secondary" 
+                        className="text-[10px] px-3 py-1 h-auto flex items-center gap-1"
+                        onClick={() => handleSwapHabit(s)}
+                      >
+                        <Zap size={10} />
+                        Swap
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>

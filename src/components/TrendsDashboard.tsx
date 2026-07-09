@@ -94,6 +94,22 @@ const TrendsDashboard: React.FC<TrendsDashboardProps> = ({ habits, completions, 
   };
 
   const habitStats = useMemo(() => {
+    const getCompletionsInRange = (habitId: string, days: number) => {
+      let count = 0;
+      const today = new Date();
+      for (let i = 0; i < days; i++) {
+        const d = new Date();
+        d.setDate(today.getDate() - i);
+        const key = `${habitId}_${formatDateKey(d)}`;
+        const val = completions[key];
+        const isCompleted = typeof val === 'boolean' ? val : (val && val.completed);
+        if (isCompleted) {
+          count++;
+        }
+      }
+      return count;
+    };
+
     return habits.map(habit => {
       const completions7d = getCompletionsInRange(habit.id, 7);
       const completions30d = getCompletionsInRange(habit.id, 30);

@@ -10,11 +10,11 @@ export interface CorrelationInsight {
 }
 
 export const correlationService = {
-  async getInsights(
+  getInsights(
     habits: Habit[],
     completions: Record<string, any>,
     currentWeather: WeatherData | null
-  ): Promise<CorrelationInsight[]> {
+  ): CorrelationInsight[] {
     const insights: CorrelationInsight[] = [];
 
     const timeInsight = this.analyzeTimeOfDay(habits, completions);
@@ -29,7 +29,7 @@ export const correlationService = {
     return insights;
   },
 
-  private analyzeTimeOfDay(habits: Habit[], completions: Record<string, any>): CorrelationInsight | null {
+  analyzeTimeOfDay(habits: Habit[], completions: Record<string, any>): CorrelationInsight | null {
     const hourCounts: Record<number, number> = {};
     let total = 0;
 
@@ -69,7 +69,7 @@ export const correlationService = {
     return null;
   },
 
-  private analyzeHabitConnections(habits: Habit[], completions: Record<string, any>): CorrelationInsight | null {
+  analyzeHabitConnections(habits: Habit[], completions: Record<string, any>): CorrelationInsight | null {
     // Find most frequent habit
     const habitCounts: Record<string, number> = {};
     Object.entries(completions).forEach(([key, value]) => {
@@ -132,7 +132,7 @@ export const correlationService = {
     return null;
   },
 
-  private analyzeWeather(weather: WeatherData | null): CorrelationInsight | null {
+  analyzeWeather(weather: WeatherData | null): CorrelationInsight | null {
     // Since we don't have historical weather, we provide a "momentum" insight
     // based on current weather and the user's general trends.
     if (!weather) return null;
@@ -160,7 +160,7 @@ export const correlationService = {
     return null;
   },
 
-  private getPeriod(hour: number): string {
+  getPeriod(hour: number): string {
     if (hour >= 5 && hour < 12) return 'Morning';
     if (hour >= 12 && hour < 17) return 'Afternoon';
     if (hour >= 17 && hour < 22) return 'Evening';

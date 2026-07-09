@@ -141,7 +141,8 @@ export const calculateStreak = (
     }
     checkDate = getPreviousDay(checkDate);
   }
-}
+  return streak;
+};
 
 /**
  * Returns a history of completion status for the last N days.

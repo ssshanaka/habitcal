@@ -31,7 +31,7 @@ import {
   calculateStreak
 } from './utils';
 import { calculateDailyDensity } from './utils/analysis';
-import { Habit, SortMode, HabitEnvironment } from './types';
+import { Habit, SortMode, HabitEnvironment, HabitFrequency } from './types';
 import { Button } from './components/Button';
 import { Modal } from './components/Modal';
 import { useTheme, ThemeMode } from './hooks/useTheme';
@@ -48,7 +48,7 @@ import { useToast } from './hooks/useToast';
 import { habitsService } from './services/habits';
 import { syncService } from './services/sync';
 import { externalSyncService } from './services/externalSync';
-import { CalendarSettingsModal } from './components/CalendarSettingsModal';
+import CalendarSettingsModal from './components/CalendarSettingsModal';
 import FocusMode from './components/FocusMode';
 import HabitGrid from './components/HabitGrid';
 import HabitAnalytics from './components/HabitAnalytics';
@@ -141,13 +141,7 @@ function App() {
   const [isCalendarSettingsOpen, setIsCalendarSettingsOpen] = useState(false);
   const [view, setView] = useState<'grid' | 'garden' | 'consultant' | 'stats'>('grid');
   
-  // Focus Mode Habit
-  const focusedHabit = useMemo(() => {
-    if (!focusModeActive) return null;
-    // Find the first incomplete habit for today
-    return visibleHabits.find(h => !completions[`${h.id}_${todayKey}`]) || visibleHabits[0];
-  }, [focusModeActive, visibleHabits, completions, todayKey]);
-  
+
   useEffect(() => {
     setIsSidebarOpen(window.innerWidth >= 1024);
   }, []);
@@ -289,7 +283,7 @@ function App() {
       const firstWarning = densityAnalysis.warnings[0];
       addToast(
         `High intensity detected between ${firstWarning.startTime} and ${firstWarning.endTime}. Consider staggering your routines to avoid burnout!`, 
-        'warning'
+        'info'
       );
     }
   }, [densityAnalysis]);
@@ -341,6 +335,13 @@ function App() {
 
     return list;
   }, [sortedHabits, todayFocusOnly, completions, todayKey, searchQuery]);
+
+  // Focus Mode Habit
+  const focusedHabit = useMemo(() => {
+    if (!focusModeActive) return null;
+    // Find the first incomplete habit for today
+    return visibleHabits.find(h => !completions[`${h.id}_${todayKey}`]) || visibleHabits[0];
+  }, [focusModeActive, visibleHabits, completions, todayKey]);
 
   // --- Handlers ---
   const isCompleted = (habitId: string, date: Date) => {
@@ -464,7 +465,12 @@ function App() {
   const handleSignOut = () => {
     signOut();
     setIsProfileOpen(false);
-  }
+  };
+  
+  const handleLoginClick = () => {
+    setIsLoginModalOpen(true);
+    setShowAuthReminder(false);
+  };
   
   const handleFocusComplete = async (habitId: string) => {
     const todayKey = formatDateKey(new Date());
@@ -824,6 +830,10 @@ function App() {
         setNewHabitEnvironment={setNewHabitEnvironment}
         newHabitDependencyId={newHabitDependencyId}
         setNewHabitDependencyId={setNewHabitDependencyId}
+        newHabitFrequency={newHabitFrequency}
+        setNewHabitFrequency={setNewHabitFrequency}
+        newHabitDaysOfWeek={newHabitDaysOfWeek}
+        setNewHabitDaysOfWeek={setNewHabitDaysOfWeek}
         colors={colors}
         categories={categories}
         allHabits={habits}

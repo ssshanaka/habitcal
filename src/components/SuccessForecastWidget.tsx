@@ -25,7 +25,7 @@ const SuccessForecastWidget: React.FC<SuccessForecastWidgetProps> = ({ habits, c
     const dataInsights = analyzeHabitPatterns(habits, completions);
     
     // Sort insights by priority (highest first)
-    const topDataInsight = dataInsights.sort((a, b) => b.priority - a.priority)[0];
+    const topDataInsight = dataInsights.insights.sort((a, b) => b.priority - a.priority)[0];
 
     // 2. Calculate Heuristic-based insights (Weather/Time)
     let heuristicInsight: ForecastResult | null = null;

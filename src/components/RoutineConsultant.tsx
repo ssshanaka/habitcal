@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Habit } from '../types';
 import { analyzeHabitPatterns, calculateDailyDensity, Insight, DensityWarning } from '../utils/analysis';
 import { Button } from './Button';
-import { AlertTriangle, CheckCircle2, TrendingUp, Clock, ArrowRight, BrainCircuit } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, TrendingUp, Clock, ArrowRight, BrainCircuit, ArrowLeft, Sparkles } from 'lucide-react';
 
 interface RoutineConsultantProps {
   habits: Habit[];
