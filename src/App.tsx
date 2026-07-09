@@ -51,6 +51,7 @@ import { externalSyncService } from './services/externalSync';
 import { CalendarSettingsModal } from './components/CalendarSettingsModal';
 import FocusMode from './components/FocusMode';
 import HabitGrid from './components/HabitGrid';
+import HabitAnalytics from './components/HabitAnalytics';
 import Sidebar from './components/Sidebar';
 import HabitModal from './components/HabitModal';
 import { AIRoutineArchitect } from './components/AIRoutineArchitect';
@@ -138,7 +139,7 @@ function App() {
   const [isNoticeOpen, setIsNoticeOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCalendarSettingsOpen, setIsCalendarSettingsOpen] = useState(false);
-  const [view, setView] = useState<'grid' | 'garden' | 'consultant'>('grid');
+  const [view, setView] = useState<'grid' | 'garden' | 'consultant' | 'stats'>('grid');
   
   // Focus Mode Habit
   const focusedHabit = useMemo(() => {
@@ -779,11 +780,16 @@ function App() {
             onHabitClick={openEditModal} 
             onBack={() => setView('grid')} 
           />
-        ) : (
+        ) : view === 'consultant' ? (
           <RoutineConsultant 
             habits={habits} 
             completions={completions} 
             onBack={() => setView('grid')} 
+          />
+        ) : (
+          <HabitAnalytics 
+            habits={habits} 
+            completions={completions} 
           />
         )}
       </div>

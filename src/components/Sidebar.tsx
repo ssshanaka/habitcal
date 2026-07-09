@@ -16,8 +16,8 @@ interface SidebarProps {
   openCreateModal: () => void;
   onExternalSync: () => Promise<void>;
   onOpenCalendarSettings: () => void;
-  setView: (view: 'grid' | 'garden' | 'consultant') => void;
-  currentView: 'grid' | 'garden' | 'consultant';
+  setView: (view: 'grid' | 'garden' | 'consultant' | 'stats') => void;
+  currentView: 'grid' | 'garden' | 'consultant' | 'stats';
   sortMode: SortMode;
   setSortMode: (mode: SortMode) => void;
   todayFocusOnly: boolean;
@@ -128,6 +128,23 @@ const Sidebar: React.FC<SidebarProps> = ({
             {currentView === 'consultant' ? 'Back to Grid' : 'Routine Advisor'}
           </span>
           <span className="text-gcal-muted">{currentView === 'consultant' ? 'Grid' : 'AI'}</span>
+        </button>
+        <button
+          onClick={() => setView(currentView === 'stats' ? 'grid' : 'stats')}
+          className={`w-full text-left flex items-center justify-between gap-2 glassmorphism p-3 rounded-2xl transition-all hover:shadow-md text-sm ${
+            currentView === 'stats' ? 'ring-1 ring-gcal-blue' : ''
+          }`}
+          style={{
+            background: 'var(--glass-bg)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+          }}
+        >
+          <span className="flex items-center gap-2 font-medium">
+            <BarChart3 size={14} />
+            {currentView === 'stats' ? 'Back to Grid' : 'Analytics'}
+          </span>
+          <span className="text-gcal-muted">{currentView === 'stats' ? 'Grid' : 'Stats'}</span>
         </button>
         <button
           onClick={onExternalSync}
