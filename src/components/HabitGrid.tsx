@@ -1,16 +1,23 @@
 import React from 'react';
-import { Plus, Target } from 'lucide-react';
+import { Plus, Target, CheckCircle2, Circle } from 'lucide-react';
 import { Habit, SortMode } from '../types';
 import { isSameDay } from '../utils';
 import { Button } from './Button';
 import HabitRow from './HabitRow';
+import NextUpSpotlight from './NextUpSpotlight';
+import { useWeather } from '../hooks/useWeather';
+import { generateProactiveInsight } from '../services/proactiveCoach';
+import { useMemo } from 'react';
 
 interface HabitGridProps {
+  allHabits: Habit[];
   allHabitsCount: number;
   visibleHabits: Habit[];
   weekDays: Date[];
+  completions: Record<string, boolean | { completed: boolean; timestamp: string }>;
   isCompleted: (habitId: string, date: Date) => boolean;
   toggleCompletion: (habitId: string, date: Date) => void;
+  setCompletionsForDate: (date: Date, completed: boolean) => Promise<void>;
   openEditModal: (habit: Habit) => void;
   handleDeleteHabit: (id: string) => Promise<void>;
   moveHabit: (index: number, direction: 'up' | 'down') => void;
@@ -18,26 +25,45 @@ interface HabitGridProps {
   todayFocusOnly: boolean;
   streaks: Record<string, number>;
   openCreateModal: () => void;
+  onTimerStop: (habitId: string, minutes: number) => void;
 }
 
 const HabitGrid: React.FC<HabitGridProps> = ({
+  allHabits,
   allHabitsCount,
   visibleHabits,
   weekDays,
+  completions,
   isCompleted,
   toggleCompletion,
+  setCompletionsForDate,
   openEditModal,
   handleDeleteHabit,
   moveHabit,
   sortMode,
   todayFocusOnly,
   streaks,
-  openCreateModal
+  openCreateModal,
+  onTimerStop
 }) => {
   const today = new Date();
+  const { weather, loading: weatherLoading } = useWeather();
+
+  const topInsight = useMemo(() => {
+    if (weatherLoading) return null;
+    const insights = generateProactiveInsight(allHabits, completions, weather, today);
+    return insights.length > 0 ? insights[0] : null;
+  }, [allHabits, completions, weather, weatherLoading]);
+
+  const topInsightHabitId = topInsight?.habitId;
+
+  const handleTimerStop = (habitId: string, minutes: number) => {
+    onTimerStop(habitId, minutes);
+  };
 
   return (
     <main className="flex-1 flex flex-col overflow-hidden relative z-0">
+      <NextUpSpotlight insight={topInsight} />
       {/* Grid Header (Days) */}
       <div className="flex border-b border-gcal-border flex-shrink-0 transition-colors duration-300 glassmorphism" style={{
         background: 'var(--glass-bg)',
@@ -53,6 +79,10 @@ const HabitGrid: React.FC<HabitGridProps> = ({
          <div className="flex-1 grid grid-cols-7">
            {weekDays.map((day, i) => {
              const isToday = isSameDay(day, today);
+             
+             // Calculate if all habits are completed for this day
+             const allCompleted = allHabits.length > 0 && allHabits.every(h => isCompleted(h.id, day));
+
              return (
                <div key={i} className="flex flex-col items-center justify-center py-4 border-r border-gcal-border last:border-r-0">
                  <span className={`text-xs font-bold uppercase mb-2 tracking-wider ${isToday ? 'bg-gradient-to-r from-gcal-blue to-purple-500 bg-clip-text text-transparent' : 'text-gcal-muted'}`}>
@@ -65,6 +95,25 @@ const HabitGrid: React.FC<HabitGridProps> = ({
                  }`}>
                    {day.getDate()}
                  </div>
+                 {/* New: Date/Month Display */}
+                 <span className="text-[10px] text-gcal-muted uppercase mt-1 mb-3">{day.toLocaleDateString('en-US', { month: 'short' })}</span>
+                 
+                 {/* Bulk Completion Toggle */}
+                 <button 
+                   onClick={() => setCompletionsForDate(day, !allCompleted)}
+                   className={`group flex items-center justify-center p-1.5 rounded-lg transition-all duration-200 ${
+                     allCompleted 
+                       ? 'text-green-500 bg-green-500/10 hover:bg-green-500/20' 
+                       : 'text-gcal-muted hover:text-gcal-blue bg-gcal-surface/50 hover:bg-gcal-surface'
+                   }`}
+                   title={allCompleted ? "Clear all completions for this day" : "Complete all habits for this day"}
+                 >
+                   {allCompleted ? (
+                     <CheckCircle2 size={16} className="animate-in zoom-in-50" />
+                   ) : (
+                     <Circle size={16} />
+                   )}
+                 </button>
                </div>
              );
            })}  
@@ -88,23 +137,54 @@ const HabitGrid: React.FC<HabitGridProps> = ({
              <p className="text-sm mt-1">Turn off &quot;Focus on today&quot; to see all habits.</p>
            </div>
          ) : (
-           visibleHabits.map((habit, index) => (
-             <HabitRow 
-               key={habit.id}
-               habit={habit}
-               index={index}
-               totalHabits={visibleHabits.length}
-               weekDays={weekDays}
-               isCompleted={isCompleted}
-               toggleCompletion={toggleCompletion}
-               openEditModal={openEditModal}
-               handleDeleteHabit={handleDeleteHabit}
-               moveHabit={moveHabit}
-               sortMode={sortMode}
-               todayFocusOnly={todayFocusOnly}
-               streak={streaks[habit.id] || 0}
-             />
-           ))
+           <>
+             {visibleHabits.reduce((acc: JSX.Element[], habit, index) => {
+               const currentCat = habit.category || 'Uncategorized';
+               const prevHabit = visibleHabits[index - 1];
+               const prevCat = prevHabit ? (prevHabit.category || 'Uncategorized') : null;
+
+               const elements = [];
+
+               // Render category header if it's the first habit or category changed
+               if (currentCat !== prevCat) {
+                 elements.push(
+                   <div 
+                     key={`cat-header-${currentCat}`} 
+                     className="flex items-center gap-3 py-4 px-4 bg-gcal-surface/20 border-y border-gcal-border/50 sticky top-0 z-10"
+                   >
+                     <span className="text-[10px] font-black text-gcal-muted uppercase tracking-[0.2em]">
+                       {currentCat}
+                     </span>
+                     <div className="flex-1 h-px bg-gradient-to-r from-gcal-border/50 to-transparent" />
+                   </div>
+                 );
+               }
+
+               elements.push(
+                 <HabitRow 
+                   key={habit.id}
+                   habit={habit}
+                   index={index}
+                   totalHabits={visibleHabits.length}
+                   weekDays={weekDays}
+                   completions={completions}
+                   isCompleted={isCompleted}
+                   toggleCompletion={toggleCompletion}
+                   openEditModal={openEditModal}
+                   handleDeleteHabit={handleDeleteHabit}
+                   moveHabit={moveHabit}
+                   sortMode={sortMode}
+                   todayFocusOnly={todayFocusOnly}
+                   streak={streaks[habit.id] || 0}
+                   onTimerStop={handleTimerStop}
+                   allHabits={visibleHabits}
+                   isSpotlight={habit.id === topInsightHabitId}
+                 />
+               );
+
+               return [...acc, ...elements];
+             }, [])}
+           </>
          )}
          
          {/* Mobile/Floating Add Button */}

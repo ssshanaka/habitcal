@@ -7,7 +7,7 @@ import { ToastType } from './useToast';
 
 export function useHabits(user: any, loading: boolean, addToast?: (message: string, type?: ToastType) => void) {
   const [habits, setHabits] = useState<Habit[]>([]);
-  const [completions, setCompletions] = useState<Record<string, boolean>>({});
+  const [completions, setCompletions] = useState<Record<string, boolean | { completed: boolean; timestamp: string }>>({});
   const [dataLoaded, setDataLoaded] = useState(false);
 
   // Default Data
@@ -84,16 +84,56 @@ export function useHabits(user: any, loading: boolean, addToast?: (message: stri
   }, [user, loading]);
 
   const toggleCompletion = async (habitId: string, date: Date) => {
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit) return;
+
+    // Dependency Check
+    if (habit.dependencyId) {
+      const dependencyHabit = habits.find(h => h.id === habit.dependencyId);
+      if (dependencyHabit) {
+        const depKey = `${habit.dependencyId}_${formatDateKey(date)}`;
+        const isDepCompleted = !!completions[depKey];
+        if (!isDepCompleted) {
+          addToast?.(`Please complete "${dependencyHabit.title}" first!`, 'error');
+          return;
+        }
+      }
+    }
+
     const key = `${habitId}_${formatDateKey(date)}`;
-    const isNowCompleted = !completions[key];
+    const prevComp = completions[key];
+    const isNowCompleted = typeof prevComp === 'boolean' ? !prevComp : !prevComp?.completed;
     
-    setCompletions(prev => ({ ...prev, [key]: isNowCompleted }));
+    setCompletions(prev => ({ 
+      ...prev, 
+      [key]: isNowCompleted 
+        ? { completed: true, timestamp: new Date().toISOString() } 
+        : false 
+    }));
 
     if (user) {
       try {
         await habitsService.toggleCompletion(habitId, date, isNowCompleted);
+        
+        // Bi-directional sync: Push to calendar if completed
+        if (isNowCompleted) {
+          import('../services/externalSync').then(({ externalSyncService }) => {
+            externalSyncService.pushHabitToCalendar(habit.title, date).catch(err => {
+              console.error('Failed to push habit completion to calendar:', err);
+            });
+          });
+        }
       } catch (err) {
-        setCompletions(prev => ({ ...prev, [key]: !isNowCompleted }));
+        // Rollback to previous state
+        setCompletions(prev => {
+          const restored = { ...prev };
+          if (prevComp === undefined) {
+            delete restored[key];
+          } else {
+            restored[key] = prevComp;
+          }
+          return restored;
+        });
         addToast?.('Failed to update completion', 'error');
       }
     }
@@ -134,48 +174,57 @@ export function useHabits(user: any, loading: boolean, addToast?: (message: stri
     }
   };
 
-  const setTodayForAll = async (completed: boolean) => {
-    const todayDate = new Date();
-    const todayKey = formatDateKey(todayDate);
-    const updates: Record<string, boolean> = {};
-    habits.forEach(habit => {
-      updates[`${habit.id}_${todayKey}`] = completed;
-    });
-
+  const setCompletionsForDate = async (date: Date, completed: boolean) => {
     const prevCompletions = completions;
-    setCompletions(prev => ({ ...prev, ...updates }));
+    const dateKey = formatDateKey(date);
+
+    // Optimistic update
+    const newCompletions: Record<string, any> = { ...prevCompletions };
+    habits.forEach(habit => {
+      const key = `${habit.id}_${dateKey}`;
+      newCompletions[key] = completed 
+        ? { completed: true, timestamp: new Date().toISOString() } 
+        : false;
+    });
+    setCompletions(newCompletions);
 
     if (user) {
       try {
-        await Promise.all(
-          habits.map(habit => habitsService.toggleCompletion(habit.id, todayDate, completed))
-        );
+        await habitsService.setCompletionsForDate(date, completed);
       } catch (error) {
         setCompletions(prevCompletions);
-        addToast?.('Failed to update today\'s habits', 'error');
+        addToast?.(`Failed to update completions for ${dateKey}`, 'error');
       }
     }
   };
 
-  const moveHabit = async (index: number, direction: 'up' | 'down') => {
-    if (index < 0 || (direction === 'up' && index === 0) || (direction === 'down' && index === habits.length - 1)) return;
+  const setTodayForAll = async (completed: boolean) => {
+    await setCompletionsForDate(new Date(), completed);
+  };
 
-    const newHabits = [...habits];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    [newHabits[index], newHabits[targetIndex]] = [newHabits[targetIndex], newHabits[index]];
-    
-    const updatedHabits = newHabits.map((h, i) => ({ ...h, order: i }));
-    setHabits(updatedHabits);
+  const clearAllCompletions = async () => {
+    const prevCompletions = completions;
+    setCompletions({});
 
     if (user) {
       try {
-        await Promise.all([
-          habitsService.updateHabit({ ...updatedHabits[index], order: index }),
-          habitsService.updateHabit({ ...updatedHabits[targetIndex], order: targetIndex })
-        ]);
+        await habitsService.clearAllCompletions();
       } catch (err) {
-        addToast?.('Failed to persist habit order', 'error');
-        setHabits(habits);
+        setCompletions(prevCompletions);
+        addToast?.('Failed to clear completions', 'error');
+      }
+    }
+  };
+
+  const moveHabit = (index: number, direction: 'up' | 'down') => {
+    const newHabits = [...habits];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex >= 0 && targetIndex < newHabits.length) {
+      [newHabits[index], newHabits[targetIndex]] = [newHabits[targetIndex], newHabits[index]];
+      newHabits.forEach((h, i) => h.order = i);
+      setHabits(newHabits);
+      if (user) {
+         habitsService.reorderHabits(newHabits);
       }
     }
   };
@@ -190,6 +239,8 @@ export function useHabits(user: any, loading: boolean, addToast?: (message: stri
     saveHabit,
     deleteHabit,
     setTodayForAll,
-    moveHabit
+    setCompletionsForDate,
+    moveHabit,
+    clearAllCompletions
   };
 }

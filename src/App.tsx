@@ -11,8 +11,14 @@ import {
   Moon,
   Sun,
   LogOut,
+  Target,
+  Sparkles,
+  BarChart3,
   Search,
-  X
+  RefreshCw,
+  Zap,
+  X,
+  Activity
 } from 'lucide-react';
 import { 
   getWeekStart, 
@@ -24,20 +30,33 @@ import {
   categories,
   calculateStreak
 } from './utils';
-import { Habit, SortMode } from './types';
+import { calculateDailyDensity } from './utils/analysis';
+import { Habit, SortMode, HabitEnvironment } from './types';
 import { Button } from './components/Button';
 import { Modal } from './components/Modal';
+import { useTheme, ThemeMode } from './hooks/useTheme';
 import { useAuth } from './hooks/useAuth';
 import { useHabits } from './hooks/useHabits';
+import { useNotifications } from './hooks/useNotifications';
+import { useProactiveCoach } from './hooks/useProactiveCoach';
 import { AuthReminder } from './components/AuthReminder';
 import { ProfileLoginPopup } from './components/ProfileLoginPopup';
 import { HeatmapCalendar } from './components/HeatmapCalendar';
 import { NoticeModal } from './components/NoticeModal';
 import { Toast } from './components/Toast';
 import { useToast } from './hooks/useToast';
+import { habitsService } from './services/habits';
+import { syncService } from './services/sync';
+import { externalSyncService } from './services/externalSync';
+import { CalendarSettingsModal } from './components/CalendarSettingsModal';
+import FocusMode from './components/FocusMode';
 import HabitGrid from './components/HabitGrid';
+import HabitAnalytics from './components/HabitAnalytics';
 import Sidebar from './components/Sidebar';
 import HabitModal from './components/HabitModal';
+import { AIRoutineArchitect } from './components/AIRoutineArchitect';
+import HabitGarden from './components/HabitGarden';
+import RoutineConsultant from './components/RoutineConsultant';
 
 function App() {
   // --- Auth ---
@@ -47,14 +66,20 @@ function App() {
   // --- Data ---
   const {
     habits,
+    setHabits,
     completions,
     dataLoaded,
     toggleCompletion,
     saveHabit,
     deleteHabit,
     setTodayForAll,
-    moveHabit
+    setCompletionsForDate,
+    moveHabit,
+    clearAllCompletions
   } = useHabits(user, loading, addToast);
+
+  const { notificationsEnabled, toggleNotifications } = useNotifications(habits);
+  useProactiveCoach(habits, completions);
 
   // --- State ---
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -63,22 +88,65 @@ function App() {
   const streaks = useMemo(() => {
     const streakMap: Record<string, number> = {};
     habits.forEach(habit => {
-      streakMap[habit.id] = calculateStreak(habit.id, completions);
+      streakMap[habit.id] = calculateStreak(habit, completions);
     });
     return streakMap;
   }, [habits, completions]);
+  
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleRefresh = async () => {
+      setIsSyncing(true);
+      try {
+          const fetchedHabits = await habitsService.fetchHabits();
+          const fetchedCompletions = await habitsService.fetchCompletions();
+          setHabits(fetchedHabits);
+          addToast('Data synchronized', 'success');
+      } catch (err) {
+          addToast('Failed to sync data', 'error');
+      } finally {
+          setIsSyncing(false);
+      }
+  };
+  
+  const handleExternalSync = async () => {
+      try {
+          const result = await externalSyncService.syncExternalEvents();
+          if (result.matchedCount > 0) {
+              addToast(`Synced ${result.matchedCount} habits from external sources`, 'success');
+          } else {
+              addToast('No external events matched your habits', 'info');
+          }
+          // Refresh the UI
+          await handleRefresh();
+      } catch (err) {
+          addToast('External sync failed', 'error');
+      }
+  };
   
   // UI State
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isAIArchitectOpen, setIsAIArchitectOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>(SortMode.TIME);
   const [todayFocusOnly, setTodayFocusOnly] = useState(false);
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [focusModeActive, setFocusModeActive] = useState(false);
+  const [showHabitDetails, setShowHabitDetails] = useState(false);
+  const { mode: themeMode, setMode: setThemeMode } = useTheme();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNoticeOpen, setIsNoticeOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCalendarSettingsOpen, setIsCalendarSettingsOpen] = useState(false);
+  const [view, setView] = useState<'grid' | 'garden' | 'consultant' | 'stats'>('grid');
+  
+  // Focus Mode Habit
+  const focusedHabit = useMemo(() => {
+    if (!focusModeActive) return null;
+    // Find the first incomplete habit for today
+    return visibleHabits.find(h => !completions[`${h.id}_${todayKey}`]) || visibleHabits[0];
+  }, [focusModeActive, visibleHabits, completions, todayKey]);
   
   useEffect(() => {
     setIsSidebarOpen(window.innerWidth >= 1024);
@@ -90,6 +158,7 @@ function App() {
 
   // Editing State
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
+  const [newHabitEnvironment, setNewHabitEnvironment] = useState<HabitEnvironment>(HabitEnvironment.ANY);
   
   // Form State
   const [newHabitTitle, setNewHabitTitle] = useState('');
@@ -98,6 +167,10 @@ function App() {
   const [newHabitTimeEnd, setNewHabitTimeEnd] = useState('');
   const [newHabitColor, setNewHabitColor] = useState(colors[0]);
   const [newHabitCategory, setNewHabitCategory] = useState(categories[0]);
+  const [newHabitDependencyId, setNewHabitDependencyId] = useState('');
+  const [newHabitGoalCount, setNewHabitGoalCount] = useState<number | undefined>(undefined);
+  const [newHabitFrequency, setNewHabitFrequency] = useState<HabitFrequency>(HabitFrequency.DAILY);
+  const [newHabitDaysOfWeek, setNewHabitDaysOfWeek] = useState<number[]>([]);
 
   // Refs for click outside
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -134,6 +207,10 @@ function App() {
     };
   }, [habits, completions, todayKey, weekDays, streaks]);
 
+  const densityAnalysis = useMemo(() => {
+    return calculateDailyDensity(habits);
+  }, [habits]);
+
   const todayProgressPercent = completionStats.todayTotal
     ? Math.round((completionStats.todayCompleted / completionStats.todayTotal) * 100)
     : 0;
@@ -159,19 +236,6 @@ function App() {
 
   // --- Effects ---
 
-  // 1. Theme (Independent)
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('habitCal_theme') as 'light' | 'dark' | null;
-    if (savedTheme) setTheme(savedTheme);
-  }, []);
-
-  useEffect(() => {
-    const html = document.documentElement;
-    if (theme === 'dark') html.classList.add('dark');
-    else html.classList.remove('dark');
-    localStorage.setItem('habitCal_theme', theme);
-  }, [theme]);
-
   // Notice Modal Check
   useEffect(() => {
     const acknowledged = localStorage.getItem('habitCal_notice_acknowledged');
@@ -184,6 +248,16 @@ function App() {
     localStorage.setItem('habitCal_notice_acknowledged', 'true');
     setIsNoticeOpen(false);
   };
+
+  useEffect(() => {
+    const handleOptimizeLoad = () => {
+      setIsAIArchitectOpen(true);
+      addToast('AI Architect: Analyzing load for optimization...', 'info');
+    };
+
+    window.addEventListener('open-ai-architect', handleOptimizeLoad);
+    return () => window.removeEventListener('open-ai-architect', handleOptimizeLoad);
+  }, []);
 
   // 2. Auth Reminder Timer
   useEffect(() => {
@@ -209,20 +283,47 @@ function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Density Warning Notification
+  useEffect(() => {
+    if (densityAnalysis.warnings.length > 0 && densityAnalysis.intensityScore > 70) {
+      const firstWarning = densityAnalysis.warnings[0];
+      addToast(
+        `High intensity detected between ${firstWarning.startTime} and ${firstWarning.endTime}. Consider staggering your routines to avoid burnout!`, 
+        'warning'
+      );
+    }
+  }, [densityAnalysis]);
+
 
   // --- Sorting ---
   const sortedHabits = useMemo(() => {
     const list = [...habits];
-    if (sortMode === SortMode.TIME) {
-      return list.sort((a, b) => {
+    
+    return list.sort((a, b) => {
+      // 1. Sort by Category first
+      const catA = a.category || 'Uncategorized';
+      const catB = b.category || 'Uncategorized';
+      
+      const catOrder = categories.indexOf(catA);
+      const catOrderB = categories.indexOf(catB);
+      
+      const finalCatA = catOrder === -1 ? categories.length : catOrder;
+      const finalCatB = catOrderB === -1 ? categories.length : catOrderB;
+      
+      if (finalCatA !== finalCatB) {
+        return finalCatA - finalCatB;
+      }
+
+      // 2. Sort within category by Time or Manual Order
+      if (sortMode === SortMode.TIME) {
         if (!a.timeStart && !b.timeStart) return a.order - b.order;
         if (!a.timeStart) return 1;
         if (!b.timeStart) return -1;
         return a.timeStart.localeCompare(b.timeStart);
-      });
-    } else {
-      return list.sort((a, b) => a.order - b.order);
-    }
+      } else {
+        return a.order - b.order;
+      }
+    });
   }, [habits, sortMode]);
 
   const visibleHabits = useMemo(() => {
@@ -285,6 +386,11 @@ function App() {
         timeEnd: newHabitTimeEnd || undefined,
         color: newHabitColor,
         category: newHabitCategory,
+        environment: newHabitEnvironment,
+        dependencyId: newHabitDependencyId || undefined,
+        goalCount: newHabitGoalCount,
+        frequency: newHabitFrequency,
+        daysOfWeek: newHabitDaysOfWeek,
       };
     } else {
       habitToSave = {
@@ -295,7 +401,12 @@ function App() {
         timeEnd: newHabitTimeEnd || undefined,
         color: newHabitColor,
         category: newHabitCategory,
+        environment: newHabitEnvironment,
+        dependencyId: newHabitDependencyId || undefined,
         order: habits.length,
+        goalCount: newHabitGoalCount,
+        frequency: newHabitFrequency,
+        daysOfWeek: newHabitDaysOfWeek,
       };
     }
 
@@ -327,6 +438,11 @@ function App() {
     setNewHabitTimeEnd(habit.timeEnd || '');
     setNewHabitColor(habit.color);
     setNewHabitCategory(habit.category || categories[0]);
+    setNewHabitEnvironment(habit.environment || HabitEnvironment.ANY);
+    setNewHabitDependencyId(habit.dependencyId || '');
+    setNewHabitGoalCount(habit.goalCount);
+    setNewHabitFrequency(habit.frequency);
+    setNewHabitDaysOfWeek(habit.daysOfWeek || []);
     setIsModalOpen(true);
   };
 
@@ -337,6 +453,11 @@ function App() {
     setNewHabitTimeEnd('');
     setNewHabitColor(colors[0]);
     setNewHabitCategory(categories[0]);
+    setNewHabitEnvironment(HabitEnvironment.ANY);
+    setNewHabitDependencyId('');
+    setNewHabitGoalCount(undefined);
+    setNewHabitFrequency(HabitFrequency.DAILY);
+    setNewHabitDaysOfWeek([]);
     setEditingHabitId(null);
   };
 
@@ -345,13 +466,35 @@ function App() {
     setIsProfileOpen(false);
   }
   
-  const handleLoginClick = () => {
-      setIsLoginModalOpen(true);
-      if (showAuthReminder) {
-          setReminderDismissed(true);
-          setShowAuthReminder(false);
-      }
-  }
+  const handleFocusComplete = async (habitId: string) => {
+    const todayKey = formatDateKey(new Date());
+    await toggleCompletion(habitId, new Date());
+    addToast('Habit completed!', 'success');
+    
+    // Small delay before exiting focus mode to show the completion state
+    setTimeout(() => {
+      setFocusModeActive(false);
+    }, 1000);
+  };
+
+  // --- Timer Handler ---
+  const handleTimerStop = async (habitId: string, minutes: number) => {
+    try {
+      const habit = habits.find(h => h.id === habitId);
+      if (!habit) return;
+
+      const updatedHabit = {
+        ...habit,
+        duration_minutes: (habit.duration_minutes || 0) + minutes
+      };
+
+      await saveHabit(updatedHabit, true);
+      addToast(`Added ${minutes}m to ${habit.title}`, 'success');
+    } catch (err) {
+      console.error('Error updating timer duration:', err);
+      addToast('Failed to save duration', 'error');
+    }
+  };
 
   // --- Render ---
   
@@ -374,7 +517,6 @@ function App() {
       }}>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-             {/* Hamburger Menu – toggles mobile sidebar */}
              <Button variant="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
                <Menu size={24} />
              </Button>
@@ -397,16 +539,42 @@ function App() {
             </h2>
           </div>
 
-          {/* Search Input */}
-          <div className="relative max-w-xs ml-4 hidden md:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gcal-muted" size={18} />
-            <input 
-              type="text" 
-              placeholder="Search habits..." 
-              className="w-full bg-gcal-surface/50 border border-gcal-border rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-gcal-blue transition-all placeholder:text-gcal-muted/50"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="secondary" 
+              onClick={() => setIsAIArchitectOpen(true)}
+              className="hidden md:flex items-center gap-2 px-4 bg-gradient-to-r from-gcal-blue/20 to-purple-500/20 text-gcal-blue hover:from-gcal-blue/30 hover:to-purple-500/30 border border-gcal-blue/20"
+            >
+              <Sparkles size={18} />
+              <span>AI Architect</span>
+            </Button>
+            <Button 
+              variant={focusModeActive ? "gradient" : "secondary"} 
+              onClick={() => setFocusModeActive(!focusModeActive)}
+              className="hidden md:flex items-center gap-2 px-4"
+            >
+              <Zap size={18} className={focusModeActive ? "text-white" : "text-gcal-blue"} />
+              <span>{focusModeActive ? "Exit Focus" : "Focus Mode"}</span>
+            </Button>
+
+            <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-gcal-surface/50 border border-gcal-border transition-all duration-300">
+              <Activity size={16} className={densityAnalysis.intensityScore > 70 ? 'text-red-500' : densityAnalysis.intensityScore > 40 ? 'text-amber-500' : 'text-green-500'} />
+              <span className="text-xs font-medium text-gcal-text">Intensity: {densityAnalysis.intensityScore}%</span>
+            </div>
+
+            <div className="relative max-w-xs hidden md:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gcal-muted" size={18} />
+              <input 
+                type="text" 
+                placeholder="Search habits..." 
+                className="w-full bg-gcal-surface/50 border border-gcal-border rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-gcal-blue transition-all placeholder:text-gcal-muted/50"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Button variant="icon" onClick={handleRefresh} className={isSyncing ? 'animate-spin' : ''}>
+                <RefreshCw size={20} />
+            </Button>
           </div>
         </div>
 
@@ -414,7 +582,6 @@ function App() {
           <div className="hidden md:block relative" ref={settingsRef}>
             <Button variant="icon" onClick={() => setIsSettingsOpen(!isSettingsOpen)}><Settings size={20} /></Button>
             
-            {/* Settings Dropdown */}
             {isSettingsOpen && (
               <div className="absolute right-0 top-full mt-3 w-56 glassmorphism rounded-2xl shadow-xl z-50 overflow-hidden animate-scale" style={{
                 background: 'var(--glass-popup)',
@@ -424,27 +591,60 @@ function App() {
                  <div className="p-4 border-b border-gcal-border">
                    <h3 className="text-xs font-bold text-gcal-muted uppercase tracking-wider">Settings</h3>
                  </div>
-                 <div className="p-3">
-                   <button 
-                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                     className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-gcal-surface/50 transition-all text-sm font-medium"
-                   >
-                     <div className="flex items-center gap-3">
-                       {theme === 'dark' ? <Moon size={18} className="text-gcal-blue" /> : <Sun size={18} className="text-gcal-blue" />}
-                       <span>Dark mode</span>
-                     </div>
-                     {/* Toggle Switch Visual */}
-                     <div className={`w-11 h-6 rounded-full relative transition-all shadow-inner ${theme === 'dark' ? 'bg-gradient-to-r from-gcal-blue to-purple-500' : 'bg-gcal-muted'}`}>
-                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${theme === 'dark' ? 'left-6' : 'left-1'}`} />
-                     </div>
-                   </button>
+                 <div className="p-3 flex flex-col gap-4">
+                   <div className="flex flex-col gap-1">
+                     <span className="text-[10px] font-bold text-gcal-muted uppercase px-3">Appearance</span>
+                     <button 
+                       onClick={() => setThemeMode('light')}
+                       className={`w-full flex items-center gap-3 p-2 px-3 rounded-xl transition-all text-sm ${themeMode === 'light' ? 'bg-gcal-blue/10 text-gcal-blue' : 'hover:bg-gcal-surface/50 text-gcal-text'}`}
+                     >
+                       <Sun size={16} />
+                       <span>Light</span>
+                     </button>
+                     <button 
+                       onClick={() => setThemeMode('dark')}
+                       className={`w-full flex items-center gap-3 p-2 px-3 rounded-xl transition-all text-sm ${themeMode === 'dark' ? 'bg-gcal-blue/10 text-gcal-blue' : 'hover:bg-gcal-surface/50 text-gcal-text'}`}
+                     >
+                       <Moon size={16} />
+                       <span>Dark</span>
+                     </button>
+                     <button 
+                       onClick={() => setThemeMode('focus')}
+                       className={`w-full flex items-center gap-3 p-2 px-3 rounded-xl transition-all text-sm ${themeMode === 'focus' ? 'bg-gcal-blue/10 text-gcal-blue' : 'hover:bg-gcal-surface/50 text-gcal-text'}`}
+                     >
+                       <Target size={16} />
+                       <span>Focus</span>
+                     </button>
+                     <button 
+                       onClick={() => setThemeMode('zen')}
+                       className={`w-full flex items-center gap-3 p-2 px-3 rounded-xl transition-all text-sm ${themeMode === 'zen' ? 'bg-gcal-blue/10 text-gcal-blue' : 'hover:bg-gcal-surface/50 text-gcal-text'}`}
+                     >
+                       <Sparkles size={16} />
+                       <span>Zen</span>
+                     </button>
+                   </div>
+
+                   <div className="flex flex-col gap-1">
+                     <span className="text-[10px] font-bold text-gcal-muted uppercase px-3">Notifications</span>
+                     <button 
+                       onClick={toggleNotifications}
+                       className="w-full flex items-center justify-between p-2 px-3 rounded-xl hover:bg-gcal-surface/50 transition-all text-sm font-medium"
+                     >
+                       <div className="flex items-center gap-3">
+                         <Zap size={18} className="text-gcal-blue" />
+                         <span>Notifications</span>
+                       </div>
+                       <div className={`w-11 h-6 rounded-full relative transition-all shadow-inner ${notificationsEnabled ? 'bg-gradient-to-r from-gcal-blue to-purple-500' : 'bg-gcal-muted'}`}>
+                         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${notificationsEnabled ? 'left-6' : 'left-1'}`} />
+                       </div>
+                     </button>
+                   </div>
                  </div>
               </div>
             )}
           </div>
 
           <div className="relative" ref={profileRef}>
-            {/* Profile Icon - Always visible */}
             <button 
               onClick={() => setIsProfileOpen(!isProfileOpen)}
               className="w-11 h-11 rounded-full bg-gradient-to-br from-gcal-blue to-purple-500 hover:shadow-lg hover:scale-110 border-2 border-white/20 flex items-center justify-center text-white overflow-hidden transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gcal-blue focus:ring-offset-2 shadow-md"
@@ -456,7 +656,6 @@ function App() {
               )}
             </button>
 
-            {/* Profile Dropdown */}
             {isProfileOpen && (
               <div className="absolute right-0 top-full mt-3 w-80 glassmorphism rounded-3xl shadow-2xl z-50 overflow-hidden animate-scale p-6" style={{
                 background: 'var(--glass-popup)',
@@ -464,7 +663,6 @@ function App() {
                 WebkitBackdropFilter: 'blur(30px)',
               }}>
                 {user ? (
-                  /* Authenticated User View */
                   <>
                     <div className="flex flex-col items-center gap-3 mb-5">
                       <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gcal-blue to-purple-500 border-4 border-white/20 flex items-center justify-center overflow-hidden shadow-lg">
@@ -489,7 +687,6 @@ function App() {
                     </Button>
                   </>
                 ) : (
-                  /* Guest User - Login Options */
                   <ProfileLoginPopup onClose={() => setIsProfileOpen(false)} />
                 )}
               </div>
@@ -498,18 +695,15 @@ function App() {
         </div>
       </header>
 
-      {/* --- Main Content --- */}
       <div className="flex flex-1 overflow-hidden">
         
         {/* --- Mobile Sidebar Overlay --- */}
         {isSidebarOpen && (
           <div className="lg:hidden fixed inset-0 z-40">
-            {/* Backdrop */}
             <div 
               className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in"
               onClick={() => setIsSidebarOpen(false)}
             />
-            {/* Sidebar Panel */}
             <div className="absolute left-0 top-0 bottom-0 w-72 bg-gcal-bg-solid border-r border-gcal-border shadow-2xl animate-slide-right overflow-y-auto z-50">
               <div className="flex items-center justify-between p-4 border-b border-gcal-border">
                 <span className="font-bold text-lg text-gcal-text">Menu</span>
@@ -519,6 +713,10 @@ function App() {
               </div>
               <Sidebar
                 openCreateModal={() => { openCreateModal(); setIsSidebarOpen(false); }}
+                onExternalSync={handleExternalSync}
+                onOpenCalendarSettings={() => setIsCalendarSettingsOpen(true)}
+                setView={setView}
+                currentView={view}
                 sortMode={sortMode}
                 setSortMode={setSortMode}
                 todayFocusOnly={todayFocusOnly}
@@ -536,36 +734,64 @@ function App() {
         {/* --- Desktop Sidebar --- */}
         {isSidebarOpen && (
           <div className="hidden lg:block">
-            <Sidebar
-              openCreateModal={openCreateModal}
-              sortMode={sortMode}
-              setSortMode={setSortMode}
-              todayFocusOnly={todayFocusOnly}
-              setTodayFocusOnly={(val) => setTodayFocusOnly(val)}
-              completionStats={completionStats}
-              todayProgressPercent={todayProgressPercent}
-              weeklyProgressPercent={weeklyProgressPercent}
-              setTodayForAllHabits={setTodayForAllHabits}
-              heatmapData={heatmapData}
-            />
+              <Sidebar
+                openCreateModal={openCreateModal}
+                onExternalSync={handleExternalSync}
+                onOpenCalendarSettings={() => setIsCalendarSettingsOpen(true)}
+                setView={setView}
+                currentView={view}
+                sortMode={sortMode}
+                setSortMode={setSortMode}
+                todayFocusOnly={todayFocusOnly}
+                setTodayFocusOnly={(val) => setTodayFocusOnly(val)}
+                completionStats={completionStats}
+                todayProgressPercent={todayProgressPercent}
+                weeklyProgressPercent={weeklyProgressPercent}
+                setTodayForAllHabits={setTodayForAllHabits}
+                heatmapData={heatmapData}
+              />
           </div>
         )}
 
         {/* --- Grid View --- */}
-        <HabitGrid
-          allHabitsCount={habits.length}
-          visibleHabits={visibleHabits}
-          weekDays={weekDays}
-          isCompleted={isCompleted}
-          toggleCompletion={toggleCompletion}
-          openEditModal={openEditModal}
-          handleDeleteHabit={handleDeleteHabit}
-          moveHabit={moveHabit}
-          sortMode={sortMode}
-          todayFocusOnly={todayFocusOnly}
-          streaks={streaks}
-          openCreateModal={openCreateModal}
-        />
+        {view === 'grid' ? (
+          <HabitGrid
+            allHabits={habits}
+            allHabitsCount={habits.length}
+            visibleHabits={visibleHabits}
+            weekDays={weekDays}
+            completions={completions}
+            isCompleted={isCompleted}
+            toggleCompletion={toggleCompletion}
+            setCompletionsForDate={setCompletionsForDate}
+            openEditModal={openEditModal}
+            handleDeleteHabit={handleDeleteHabit}
+            moveHabit={moveHabit}
+            sortMode={sortMode}
+            todayFocusOnly={todayFocusOnly}
+            streaks={streaks}
+            openCreateModal={openCreateModal}
+            onTimerStop={handleTimerStop}
+          />
+        ) : view === 'garden' ? (
+          <HabitGarden 
+            habits={habits} 
+            completions={completions} 
+            onHabitClick={openEditModal} 
+            onBack={() => setView('grid')} 
+          />
+        ) : view === 'consultant' ? (
+          <RoutineConsultant 
+            habits={habits} 
+            completions={completions} 
+            onBack={() => setView('grid')} 
+          />
+        ) : (
+          <HabitAnalytics 
+            habits={habits} 
+            completions={completions} 
+          />
+        )}
       </div>
 
       {/* --- Add/Edit Habit Modal --- */}
@@ -587,16 +813,19 @@ function App() {
         setNewHabitColor={setNewHabitColor}
         newHabitCategory={newHabitCategory}
         setNewHabitCategory={setNewHabitCategory}
+        newHabitEnvironment={newHabitEnvironment}
+        setNewHabitEnvironment={setNewHabitEnvironment}
+        newHabitDependencyId={newHabitDependencyId}
+        setNewHabitDependencyId={setNewHabitDependencyId}
         colors={colors}
         categories={categories}
+        allHabits={habits}
       />
 
-      {/* Login Modal – uses ProfileLoginPopup for consistent Google + Email options */}
       <Modal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} title="Sign In">
           <ProfileLoginPopup onClose={() => setIsLoginModalOpen(false)} />
       </Modal>
 
-      {/* Guest Mode Reminder */}
       <AuthReminder 
          visible={showAuthReminder}
          onLogin={handleLoginClick}
@@ -609,6 +838,29 @@ function App() {
       <NoticeModal isOpen={isNoticeOpen} onClose={handleCloseNotice} />
 
       <Toast toasts={toasts} onRemove={removeToast} />
+
+      <Modal isOpen={isAIArchitectOpen} onClose={() => setIsAIArchitectOpen(false)} title="AI Routine Architect">
+        <AIRoutineArchitect 
+          habits={habits} 
+          saveHabit={saveHabit}
+          onPackageGenerated={async (pkg) => {
+            for (const h of pkg.habits) {
+              await saveHabit({ ...h, id: generateId() }, false);
+            }
+            addToast(`Routine "${pkg.packageName}" applied!`, 'success');
+            setIsAIArchitectOpen(false);
+          }} 
+        />
+      </Modal>
+
+      {focusModeActive && focusedHabit && (
+        <FocusMode 
+          habit={focusedHabit}
+          onExit={() => setFocusModeActive(false)}
+          onComplete={() => handleFocusComplete(focusedHabit.id)}
+          onTimerStop={handleTimerStop}
+        />
+      )}
 
     </div>
   );

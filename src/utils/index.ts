@@ -1,3 +1,5 @@
+import { Habit, HabitFrequency } from '../types';
+
 export const formatDateKey = (date: Date): string => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -62,6 +64,32 @@ export const categories = [
   'Other'
 ];
 
+export const calculateMonthlyCompletion = (
+  habitId: string,
+  completions: Record<string, boolean | { completed: boolean; timestamp: string }>
+): number => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  let count = 0;
+
+  // Iterate through all completions and count those for the current month/year
+  Object.keys(completions).forEach(key => {
+    if (key.startsWith(`${habitId}_`)) {
+      const datePart = key.split('_')[1];
+      const date = new Date(datePart);
+      if (date.getFullYear() === year && date.getMonth() === month) {
+        const comp = completions[key];
+        if (typeof comp === 'boolean' ? comp : comp?.completed) {
+          count++;
+        }
+      }
+    }
+  });
+
+  return count;
+};
+
 // --- Streak Calculation Utilities ---
 
 /**
@@ -83,41 +111,63 @@ export const getPreviousDay = (date: Date): Date => {
  * @returns Number of consecutive days with completions
  */
 export const calculateStreak = (
-  habitId: string,
-  completions: Record<string, boolean>
+  habit: Habit,
+  completions: Record<string, boolean | { completed: boolean; timestamp: string }>
 ): number => {
   let streak = 0;
   let checkDate = new Date();
   
-  // First check if today is completed. If not, check if yesterday was completed to see if the streak is still alive
-  // Actually, usually streak counts consecutive days ending in either yesterday or today.
-  // Let's stick to the current logic: count backwards from today.
-  
   const maxDaysToCheck = 365;
   
   for (let i = 0; i < maxDaysToCheck; i++) {
-    const dateKey = formatDateKey(checkDate);
-    const completionKey = `${habitId}_${dateKey}`;
-    
-    if (completions[completionKey]) {
-      streak++;
-      checkDate = getPreviousDay(checkDate);
-    } else {
-      // If today is not completed, check if yesterday was the last completed day.
-      // If i == 0 (today not completed), check if yesterday was completed. 
-      // If yesterday was completed, the streak is still active.
-      if (i === 0) {
-          const yesterday = getPreviousDay(checkDate);
-          const yesterdayKey = formatDateKey(yesterday);
-          if (completions[`${habitId}_${yesterdayKey}`]) {
-              // Streak is alive, keep checking
-              checkDate = yesterday;
-              continue;
-          }
+    const dayOfWeek = checkDate.getDay();
+    const isRequiredDay = habit.frequency === HabitFrequency.DAILY || 
+                           (habit.frequency === HabitFrequency.WEEKLY && habit.daysOfWeek?.includes(dayOfWeek));
+
+    if (isRequiredDay) {
+      const dateKey = formatDateKey(checkDate);
+      const completionKey = `${habit.id}_${dateKey}`;
+      const comp = completions[completionKey];
+      const isCompleted = typeof comp === 'boolean' ? comp : comp?.completed;
+      
+      if (isCompleted) {
+        streak++;
+      } else {
+        // Only break if this day is actually past due (not today)
+        if (!isSameDay(checkDate, new Date())) {
+          break;
+        }
       }
-      break;
     }
+    checkDate = getPreviousDay(checkDate);
   }
-  
-  return streak;
+}
+
+/**
+ * Returns a history of completion status for the last N days.
+
+ * @param habitId - The ID of the habit
+ * @param completions - Record of completions
+ * @param daysCount - Number of days to look back
+ * @returns Array of booleans representing completion status
+ */
+export const getRecentCompletionHistory = (
+  habitId: string,
+  completions: Record<string, boolean | { completed: boolean; timestamp: string }>,
+  daysCount: number = 7
+): boolean[] => {
+  const history: boolean[] = [];
+  const today = new Date();
+
+  for (let i = 0; i < daysCount; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const dateKey = formatDateKey(d);
+    const completionKey = `${habitId}_${dateKey}`;
+    const comp = completions[completionKey];
+    const isCompleted = typeof comp === 'boolean' ? comp : comp?.completed;
+    history.push(!!isCompleted);
+  }
+  // Return in chronological order (oldest to newest)
+  return history.reverse();
 };
