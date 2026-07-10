@@ -5,8 +5,9 @@ import { isSameDay } from '../utils';
 import { Button } from './Button';
 import HabitRow from './HabitRow';
 import NextUpSpotlight from './NextUpSpotlight';
+import HabitNextUpSpotlight from './HabitNextUpSpotlight';
 import { useWeather } from '../hooks/useWeather';
-import { generateProactiveInsight } from '../services/proactiveCoach';
+import { generateProactiveInsight, getNextHabit } from '../services/proactiveCoach';
 import { useMemo } from 'react';
 
 interface HabitGridProps {
@@ -55,6 +56,10 @@ const HabitGrid: React.FC<HabitGridProps> = ({
     return insights.length > 0 ? insights[0] : null;
   }, [allHabits, completions, weather, weatherLoading]);
 
+  const nextHabit = useMemo(() => {
+    return getNextHabit(allHabits, completions, today);
+  }, [allHabits, completions, today]);
+
   const topInsightHabitId = topInsight?.habitId;
 
   const handleTimerStop = (habitId: string, minutes: number) => {
@@ -63,6 +68,7 @@ const HabitGrid: React.FC<HabitGridProps> = ({
 
   return (
     <main className="flex-1 flex flex-col overflow-hidden relative z-0">
+      <HabitNextUpSpotlight habit={nextHabit} onSelect={openEditModal} />
       <NextUpSpotlight insight={topInsight} />
       {/* Grid Header (Days) */}
       <div className="flex border-b border-gcal-border flex-shrink-0 transition-colors duration-300 glassmorphism overflow-x-hidden" style={{

@@ -1,6 +1,7 @@
 import { Habit, HabitEnvironment } from '../types';
 import { analyzeHabitPatterns, Insight } from '../utils/analysis';
 import { WeatherData } from '../types';
+import { formatDateKey } from '../utils';
 
 /**
  * ProactiveCoach handles the logic of combining habit patterns, 
@@ -13,6 +14,7 @@ export const generateProactiveInsight = (
   weather: WeatherData | null,
   currentTime: Date = new Date()
 ): Insight[] => {
+// ... (rest of file)
   // 1. Get base insights and stats from the pattern analysis utility
   const { insights: baseInsights, stats } = analyzeHabitPatterns(habits, completions);
   const finalInsights: Insight[] = [...baseInsights];
@@ -144,4 +146,52 @@ export const generateProactiveInsight = (
 
   // Sort by priority (descending)
   return finalInsights.sort((a, b) => b.priority - a.priority);
+};
+
+/**
+ * Identifies the next habit the user should perform based on time and current status.
+ */
+export const getNextHabit = (
+  habits: Habit[],
+  completions: Record<string, any>,
+  currentTime: Date = new Date()
+): Habit | null => {
+  const todayKey = formatDateKey(currentTime);
+
+  // 1. Filter for habits NOT completed today
+  const incompleteHabits = habits.filter(habit => !completions[`${habit.id}_${todayKey}`]);
+
+  if (incompleteHabits.length === 0) return null;
+
+  // 2. Score habits based on imminence
+  return incompleteHabits.reduce((best, current) => {
+    if (!current.timeStart) return best;
+    if (!best || !best.timeStart) return current;
+
+    const [currHour, currMin] = current.timeStart.split(':').map(Number);
+    const [bestHour, bestMin] = best.timeStart.split(':').map(Number);
+
+    const currTimeVal = currHour * 60 + currMin;
+    const bestTimeVal = bestHour * 60 + bestMin;
+    const nowTimeVal = currentTime.getHours() * 60 + currentTime.getMinutes();
+
+    // We want the habit whose timeStart is closest to "now" but in the future
+    // Or if all are in the past, the one that's "next" in a daily cycle
+    
+    let diff: number;
+    if (currTimeVal >= nowTimeVal) {
+      diff = currTimeVal - nowTimeVal;
+    } else {
+      diff = (24 * 60 - nowTimeVal) + currTimeVal;
+    }
+
+    let bestDiff: number;
+    if (bestTimeVal >= nowTimeVal) {
+      bestDiff = bestTimeVal - nowTimeVal;
+    } else {
+      bestDiff = (24 * 60 - nowTimeVal) + bestTimeVal;
+    }
+
+    return diff < bestDiff ? current : best;
+  }, null as Habit | null);
 };
