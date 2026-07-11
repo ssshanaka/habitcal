@@ -5,12 +5,14 @@ import { isSameDay, formatDateKey } from '../utils';
 import { Button } from './Button';
 import HabitRow from './HabitRow';
 import ReflectionModal from './ReflectionModal';
+import EvolutionModal from './EvolutionModal';
 import GlobalSprintWidget from './GlobalSprintWidget';
 import NextUpSpotlight from './NextUpSpotlight';
 import HabitNextUpSpotlight from './HabitNextUpSpotlight';
 import { useWeather } from '../hooks/useWeather';
 import { generateProactiveInsight, getNextHabit } from '../services/proactiveCoach';
 import { habitsService } from '../services/habits';
+import { evolutionService, EvolutionProposal } from '../services/evolution';
 
 interface HabitGridProps {
   allHabits: Habit[];
@@ -66,6 +68,16 @@ const HabitGrid: React.FC<HabitGridProps> = ({
   });
   const [isSavingReflection, setIsSavingReflection] = useState(false);
 
+  // Evolution State
+  const [evolutionState, setEvolutionState] = useState<{
+    isOpen: boolean;
+    proposal: EvolutionProposal | null;
+  }>({
+    isOpen: false,
+    proposal: null,
+  });
+  const [isSavingEvolution, setIsSavingEvolution] = useState(false);
+
   const topInsight = useMemo(() => {
     if (weatherLoading) return null;
     const insights = generateProactiveInsight(allHabits, completions, weather, today);
@@ -105,6 +117,25 @@ const HabitGrid: React.FC<HabitGridProps> = ({
       console.error('Error saving reflection:', error);
     } finally {
       setIsSavingReflection(false);
+    }
+  };
+
+  const handleEvolutionTrigger = async (habit: Habit) => {
+    const proposal = await evolutionService.checkForEvolution(habit, completions);
+    if (proposal) {
+      setEvolutionState({ isOpen: true, proposal });
+    }
+  };
+
+  const acceptEvolution = async (proposal: EvolutionProposal) => {
+    setIsSavingEvolution(true);
+    try {
+      await evolutionService.evolveHabit(proposal.habitId, proposal);
+      setEvolutionState({ isOpen: false, proposal: null });
+    } catch (error) {
+      console.error('Error evolving habit:', error);
+    } finally {
+      setIsSavingEvolution(false);
     }
   };
 
@@ -180,6 +211,14 @@ const HabitGrid: React.FC<HabitGridProps> = ({
         isSaving={isSavingReflection}
       />
 
+      <EvolutionModal 
+        isOpen={evolutionState.isOpen}
+        onClose={() => setEvolutionState(prev => ({ ...prev, isOpen: false }))}
+        proposal={evolutionState.proposal}
+        onAccept={acceptEvolution}
+        isSaving={isSavingEvolution}
+      />
+
       {/* Grid Body (Habits) */}
       <div className="flex-1 overflow-y-auto">
          {allHabitsCount === 0 ? (
@@ -229,7 +268,10 @@ const HabitGrid: React.FC<HabitGridProps> = ({
                    weekDays={weekDays}
                    completions={completions}
                    isCompleted={isCompleted}
-                   toggleCompletion={toggleCompletion}
+                   toggleCompletion={(id, date) => {
+                     toggleCompletion(id, date);
+                     if (isCompleted(id, date)) handleEvolutionTrigger(habit);
+                   }}
                    onReflect={handleReflect}
                    openEditModal={openEditModal}
                    handleDeleteHabit={handleDeleteHabit}

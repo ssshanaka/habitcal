@@ -35,6 +35,8 @@ export interface Habit {
   frequency: HabitFrequency;
   daysOfWeek?: number[]; // 0-6, for WEEKLY
   created_at?: string;
+  level?: number; // Habit evolution level
+  lastEvolutionDate?: string; // ISO date of last level up
 }
 
 

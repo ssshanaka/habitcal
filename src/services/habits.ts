@@ -95,6 +95,8 @@ export const habitsService = {
         duration_minutes: habit.duration_minutes || 0,
         frequency: habit.frequency,
         days_of_week: habit.daysOfWeek || [],
+        level: habit.level,
+        last_evolution_date: habit.lastEvolutionDate,
       })
       .eq('id', habit.id);
 
