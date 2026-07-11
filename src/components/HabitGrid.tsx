@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Plus, Target, CheckCircle2, Circle } from 'lucide-react';
-import { Habit, SortMode } from '../types';
-import { isSameDay } from '../utils';
+import { Habit, SortMode, ReflectionReason } from '../types';
+import { isSameDay, formatDateKey } from '../utils';
 import { Button } from './Button';
 import HabitRow from './HabitRow';
+import ReflectionModal from './ReflectionModal';
 import NextUpSpotlight from './NextUpSpotlight';
 import HabitNextUpSpotlight from './HabitNextUpSpotlight';
 import { useWeather } from '../hooks/useWeather';
 import { generateProactiveInsight, getNextHabit } from '../services/proactiveCoach';
-import { useMemo } from 'react';
+import { habitsService } from '../services/habits';
 
 interface HabitGridProps {
   allHabits: Habit[];
@@ -50,6 +51,20 @@ const HabitGrid: React.FC<HabitGridProps> = ({
   const today = new Date();
   const { weather, loading: weatherLoading } = useWeather();
 
+  // Reflection State
+  const [reflectionState, setReflectionState] = useState<{
+    isOpen: boolean;
+    habitId: string | null;
+    habitTitle: string;
+    date: string;
+  }>({
+    isOpen: false,
+    habitId: null,
+    habitTitle: '',
+    date: '',
+  });
+  const [isSavingReflection, setIsSavingReflection] = useState(false);
+
   const topInsight = useMemo(() => {
     if (weatherLoading) return null;
     const insights = generateProactiveInsight(allHabits, completions, weather, today);
@@ -64,6 +79,32 @@ const HabitGrid: React.FC<HabitGridProps> = ({
 
   const handleTimerStop = (habitId: string, minutes: number) => {
     onTimerStop(habitId, minutes);
+  };
+
+  const handleReflect = (habit: Habit, date: Date) => {
+    setReflectionState({
+      isOpen: true,
+      habitId: habit.id,
+      habitTitle: habit.title,
+      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    });
+  };
+
+  const saveReflection = async (reason: ReflectionReason, note: string) => {
+    setIsSavingReflection(true);
+    try {
+      const dateKey = formatDateKey(new Date(reflectionState.date));
+      await habitsService.addReflection({
+        habitId: reflectionState.habitId!,
+        date: dateKey,
+        reason,
+        note
+      });
+    } catch (error) {
+      console.error('Error saving reflection:', error);
+    } finally {
+      setIsSavingReflection(false);
+    }
   };
 
   return (
@@ -126,6 +167,15 @@ const HabitGrid: React.FC<HabitGridProps> = ({
          </div>
       </div>
 
+      <ReflectionModal 
+        isOpen={reflectionState.isOpen}
+        onClose={() => setReflectionState(prev => ({ ...prev, isOpen: false }))}
+        habitTitle={reflectionState.habitTitle}
+        date={reflectionState.date}
+        onSave={saveReflection}
+        isSaving={isSavingReflection}
+      />
+
       {/* Grid Body (Habits) */}
       <div className="flex-1 overflow-y-auto">
          {allHabitsCount === 0 ? (
@@ -176,6 +226,7 @@ const HabitGrid: React.FC<HabitGridProps> = ({
                    completions={completions}
                    isCompleted={isCompleted}
                    toggleCompletion={toggleCompletion}
+                   onReflect={handleReflect}
                    openEditModal={openEditModal}
                    handleDeleteHabit={handleDeleteHabit}
                    moveHabit={moveHabit}

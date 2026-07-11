@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { Habit, Completion } from '@/types';
+import { Habit, Completion, HabitReflection } from '@/types';
 import { formatDateKey } from '@/utils';
 
 export const habitsService = {
@@ -210,5 +210,36 @@ export const habitsService = {
       .in('habit_id', habitIds);
 
     if (error) throw error;
+  },
+
+  async addReflection(reflection: HabitReflection) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { error } = await supabase.from('habit_reflections').upsert({
+      habit_id: reflection.habitId,
+      date: reflection.date,
+      reason: reflection.reason,
+      note: reflection.note,
+      user_id: user.id
+    }, { onConflict: 'habit_id, date' });
+
+    if (error) throw error;
+  },
+
+  async fetchReflections(habitId: string, startDate: string, endDate: string) {
+    const { data, error } = await supabase
+      .from('habit_reflections')
+      .select('*')
+      .eq('habit_id', habitId)
+      .gte('date', startDate)
+      .lte('date', endDate);
+
+    if (error) {
+      console.error('Error fetching reflections:', error);
+      return [];
+    }
+
+    return data as HabitReflection[];
   }
 };
