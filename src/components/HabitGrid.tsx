@@ -5,6 +5,7 @@ import { isSameDay, formatDateKey } from '../utils';
 import { Button } from './Button';
 import HabitRow from './HabitRow';
 import ReflectionModal from './ReflectionModal';
+import GlobalSprintWidget from './GlobalSprintWidget';
 import NextUpSpotlight from './NextUpSpotlight';
 import HabitNextUpSpotlight from './HabitNextUpSpotlight';
 import { useWeather } from '../hooks/useWeather';
@@ -109,6 +110,9 @@ const HabitGrid: React.FC<HabitGridProps> = ({
 
   return (
     <main className="flex-1 flex flex-col overflow-hidden relative z-0">
+      <div className="p-4 flex gap-4 overflow-x-auto no-scrollbar">
+        <GlobalSprintWidget />
+      </div>
       <HabitNextUpSpotlight habit={nextHabit} onSelect={openEditModal} />
       <NextUpSpotlight insight={topInsight} />
       {/* Grid Header (Days) */}
