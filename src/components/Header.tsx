@@ -7,18 +7,25 @@ import {
   User, 
   Moon, 
   Sun, 
-  LogOut 
+  LogOut,
+  Target,
+  Sparkles,
+  RefreshCw,
+  Zap,
+  Search,
+  Activity
 } from 'lucide-react';
 import { Button } from './Button';
 import { ProfileLoginPopup } from './ProfileLoginPopup';
+import { ThemeMode } from '../hooks/useTheme';
 
 interface HeaderProps {
   weekStart: Date;
   handlePrevWeek: () => void;
   handleNextWeek: () => void;
   handleToday: () => void;
-  theme: 'light' | 'dark';
-  setTheme: (theme: 'light' | 'dark') => void;
+  themeMode: ThemeMode;
+  setThemeMode: (mode: ThemeMode) => void;
   user: any;
   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -29,6 +36,17 @@ interface HeaderProps {
   setShowAuthReminder: (val: boolean) => void;
   isLoginModalOpen: boolean;
   setIsLoginModalOpen: (val: boolean) => void;
+  onMenuClick: () => void;
+  
+  // Additional features from App.tsx
+  onOpenAIArchitect: () => void;
+  focusModeActive: boolean;
+  setFocusModeActive: (active: boolean) => void;
+  intensityScore: number;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  onRefresh: () => void;
+  isSyncing: boolean;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -36,8 +54,8 @@ const Header: React.FC<HeaderProps> = ({
   handlePrevWeek,
   handleNextWeek,
   handleToday,
-  theme,
-  setTheme,
+  themeMode,
+  setThemeMode,
   user,
   signOut,
   signInWithGoogle,
@@ -47,7 +65,16 @@ const Header: React.FC<HeaderProps> = ({
   setReminderDismissed,
   setShowAuthReminder,
   isLoginModalOpen,
-  setIsLoginModalOpen
+  setIsLoginModalOpen,
+  onMenuClick,
+  onOpenAIArchitect,
+  focusModeActive,
+  setFocusModeActive,
+  intensityScore,
+  searchQuery,
+  setSearchQuery,
+  onRefresh,
+  isSyncing
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -77,7 +104,7 @@ const Header: React.FC<HeaderProps> = ({
     }}>
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
-           <Button variant="icon"><Menu size={24} /></Button>
+           <Button variant="icon" onClick={onMenuClick}><Menu size={24} /></Button>
            <div className="flex items-center gap-1">
               <div className="w-8 h-8 bg-gcal-blue rounded-lg flex items-center justify-center text-white">
                 <span className="text-lg font-bold">H</span>
@@ -96,6 +123,44 @@ const Header: React.FC<HeaderProps> = ({
             {weekStart.toLocaleString('default', { month: 'long', year: 'numeric' })}
           </h2>
         </div>
+
+        <div className="flex items-center gap-2 ml-4">
+            <Button 
+              variant="secondary" 
+              onClick={onOpenAIArchitect}
+              className="hidden md:flex items-center gap-2 px-4 bg-gradient-to-r from-gcal-blue/20 to-purple-500/20 text-gcal-blue hover:from-gcal-blue/30 hover:to-purple-500/30 border border-gcal-blue/20"
+            >
+              <Sparkles size={18} />
+              <span>AI Architect</span>
+            </Button>
+            <Button 
+              variant={focusModeActive ? "gradient" : "secondary"} 
+              onClick={() => setFocusModeActive(!focusModeActive)}
+              className="hidden md:flex items-center gap-2 px-4"
+            >
+              <Zap size={18} className={focusModeActive ? "text-white" : "text-gcal-blue"} />
+              <span>{focusModeActive ? "Exit Focus" : "Focus Mode"}</span>
+            </Button>
+
+            <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-gcal-surface/50 border border-gcal-border transition-all duration-300">
+              <Activity size={16} className={intensityScore > 70 ? 'text-red-500' : intensityScore > 40 ? 'text-amber-500' : 'text-green-500'} />
+              <span className="text-xs font-medium text-gcal-text">Intensity: {intensityScore}%</span>
+            </div>
+
+            <div className="relative max-w-xs hidden md:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gcal-muted" size={18} />
+              <input 
+                type="text" 
+                placeholder="Search habits..." 
+                className="w-full bg-gcal-surface/50 border border-gcal-border rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-gcal-blue transition-all placeholder:text-gcal-muted/50"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Button variant="icon" onClick={onRefresh} className={isSyncing ? 'animate-spin' : ''}>
+                <RefreshCw size={20} />
+            </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-3">
@@ -112,19 +177,45 @@ const Header: React.FC<HeaderProps> = ({
                <div className="p-4 border-b border-gcal-border">
                  <h3 className="text-xs font-bold text-gcal-muted uppercase tracking-wider">Settings</h3>
                </div>
-               <div className="p-3">
-                 <button 
-                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                   className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-gcal-surface/50 transition-all text-sm font-medium"
-                 >
-                   <div className="flex items-center gap-3">
-                     {theme === 'dark' ? <Moon size={18} className="text-gcal-blue" /> : <Sun size={18} className="text-gcal-blue" />}
-                     <span>Dark mode</span>
-                   </div>
-                   <div className={`w-11 h-6 rounded-full relative transition-all shadow-inner ${theme === 'dark' ? 'bg-gradient-to-r from-gcal-blue to-purple-500' : 'bg-gcal-muted'}`}>
-                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${theme === 'dark' ? 'left-6' : 'left-1'}`} />
-                   </div>
-                 </button>
+               <div className="p-3 flex flex-col gap-4">
+                 <div className="flex flex-col gap-1">
+                   <span className="text-[10px] font-bold text-gcal-muted uppercase px-3">Appearance</span>
+                   <button 
+                     onClick={() => setThemeMode('light')}
+                     className={`w-full flex items-center gap-3 p-2 px-3 rounded-xl transition-all text-sm ${themeMode === 'light' ? 'bg-gcal-blue/10 text-gcal-blue' : 'hover:bg-gcal-surface/50 text-gcal-text'}`}
+                   >
+                     <Sun size={16} />
+                     <span>Light</span>
+                   </button>
+                   <button 
+                     onClick={() => setThemeMode('dark')}
+                     className={`w-full flex items-center gap-3 p-2 px-3 rounded-xl transition-all text-sm ${themeMode === 'dark' ? 'bg-gcal-blue/10 text-gcal-blue' : 'hover:bg-gcal-surface/50 text-gcal-text'}`}
+                   >
+                     <Moon size={16} />
+                     <span>Dark</span>
+                   </button>
+                   <button 
+                     onClick={() => setThemeMode('focus')}
+                     className={`w-full flex items-center gap-3 p-2 px-3 rounded-xl transition-all text-sm ${themeMode === 'focus' ? 'bg-gcal-blue/10 text-gcal-blue' : 'hover:bg-gcal-surface/50 text-gcal-text'}`}
+                   >
+                     <Target size={16} />
+                     <span>Focus</span>
+                   </button>
+                   <button 
+                     onClick={() => setThemeMode('zen')}
+                     className={`w-full flex items-center gap-3 p-2 px-3 rounded-xl transition-all text-sm ${themeMode === 'zen' ? 'bg-gcal-blue/10 text-gcal-blue' : 'hover:bg-gcal-surface/50 text-gcal-text'}`}
+                   >
+                     <Sparkles size={16} />
+                     <span>Zen</span>
+                   </button>
+                   <button 
+                     onClick={() => setThemeMode('auto')}
+                     className={`w-full flex items-center gap-3 p-2 px-3 rounded-xl transition-all text-sm ${themeMode === 'auto' ? 'bg-gcal-blue/10 text-gcal-blue' : 'hover:bg-gcal-surface/50 text-gcal-text'}`}
+                   >
+                     <RefreshCw size={16} />
+                     <span>Auto (Dynamic)</span>
+                   </button>
+                 </div>
                </div>
             </div>
           )}

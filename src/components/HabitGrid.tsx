@@ -1,13 +1,18 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Plus, Target, CheckCircle2, Circle } from 'lucide-react';
-import { Habit, SortMode } from '../types';
-import { isSameDay } from '../utils';
+import { Habit, SortMode, ReflectionReason } from '../types';
+import { isSameDay, formatDateKey } from '../utils';
 import { Button } from './Button';
 import HabitRow from './HabitRow';
+import ReflectionModal from './ReflectionModal';
+import EvolutionModal from './EvolutionModal';
+import GlobalSprintWidget from './GlobalSprintWidget';
 import NextUpSpotlight from './NextUpSpotlight';
+import HabitNextUpSpotlight from './HabitNextUpSpotlight';
 import { useWeather } from '../hooks/useWeather';
-import { generateProactiveInsight } from '../services/proactiveCoach';
-import { useMemo } from 'react';
+import { generateProactiveInsight, getNextHabit } from '../services/proactiveCoach';
+import { habitsService } from '../services/habits';
+import { evolutionService, EvolutionProposal } from '../services/evolution';
 
 interface HabitGridProps {
   allHabits: Habit[];
@@ -49,11 +54,39 @@ const HabitGrid: React.FC<HabitGridProps> = ({
   const today = new Date();
   const { weather, loading: weatherLoading } = useWeather();
 
+  // Reflection State
+  const [reflectionState, setReflectionState] = useState<{
+    isOpen: boolean;
+    habitId: string | null;
+    habitTitle: string;
+    date: string;
+  }>({
+    isOpen: false,
+    habitId: null,
+    habitTitle: '',
+    date: '',
+  });
+  const [isSavingReflection, setIsSavingReflection] = useState(false);
+
+  // Evolution State
+  const [evolutionState, setEvolutionState] = useState<{
+    isOpen: boolean;
+    proposal: EvolutionProposal | null;
+  }>({
+    isOpen: false,
+    proposal: null,
+  });
+  const [isSavingEvolution, setIsSavingEvolution] = useState(false);
+
   const topInsight = useMemo(() => {
     if (weatherLoading) return null;
     const insights = generateProactiveInsight(allHabits, completions, weather, today);
     return insights.length > 0 ? insights[0] : null;
   }, [allHabits, completions, weather, weatherLoading]);
+
+  const nextHabit = useMemo(() => {
+    return getNextHabit(allHabits, completions, today);
+  }, [allHabits, completions, today]);
 
   const topInsightHabitId = topInsight?.habitId;
 
@@ -61,8 +94,57 @@ const HabitGrid: React.FC<HabitGridProps> = ({
     onTimerStop(habitId, minutes);
   };
 
+  const handleReflect = (habit: Habit, date: Date) => {
+    setReflectionState({
+      isOpen: true,
+      habitId: habit.id,
+      habitTitle: habit.title,
+      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    });
+  };
+
+  const saveReflection = async (reason: ReflectionReason, note: string) => {
+    setIsSavingReflection(true);
+    try {
+      const dateKey = formatDateKey(new Date(reflectionState.date));
+      await habitsService.addReflection({
+        habitId: reflectionState.habitId!,
+        date: dateKey,
+        reason,
+        note
+      });
+    } catch (error) {
+      console.error('Error saving reflection:', error);
+    } finally {
+      setIsSavingReflection(false);
+    }
+  };
+
+  const handleEvolutionTrigger = async (habit: Habit) => {
+    const proposal = await evolutionService.checkForEvolution(habit, completions);
+    if (proposal) {
+      setEvolutionState({ isOpen: true, proposal });
+    }
+  };
+
+  const acceptEvolution = async (proposal: EvolutionProposal) => {
+    setIsSavingEvolution(true);
+    try {
+      await evolutionService.evolveHabit(proposal.habitId, proposal);
+      setEvolutionState({ isOpen: false, proposal: null });
+    } catch (error) {
+      console.error('Error evolving habit:', error);
+    } finally {
+      setIsSavingEvolution(false);
+    }
+  };
+
   return (
     <main className="flex-1 flex flex-col overflow-hidden relative z-0">
+      <div className="p-4 flex gap-4 overflow-x-auto no-scrollbar">
+        <GlobalSprintWidget />
+      </div>
+      <HabitNextUpSpotlight habit={nextHabit} onSelect={openEditModal} />
       <NextUpSpotlight insight={topInsight} />
       {/* Grid Header (Days) */}
       <div className="flex border-b border-gcal-border flex-shrink-0 transition-colors duration-300 glassmorphism overflow-x-hidden" style={{
@@ -120,6 +202,23 @@ const HabitGrid: React.FC<HabitGridProps> = ({
          </div>
       </div>
 
+      <ReflectionModal 
+        isOpen={reflectionState.isOpen}
+        onClose={() => setReflectionState(prev => ({ ...prev, isOpen: false }))}
+        habitTitle={reflectionState.habitTitle}
+        date={reflectionState.date}
+        onSave={saveReflection}
+        isSaving={isSavingReflection}
+      />
+
+      <EvolutionModal 
+        isOpen={evolutionState.isOpen}
+        onClose={() => setEvolutionState(prev => ({ ...prev, isOpen: false }))}
+        proposal={evolutionState.proposal}
+        onAccept={acceptEvolution}
+        isSaving={isSavingEvolution}
+      />
+
       {/* Grid Body (Habits) */}
       <div className="flex-1 overflow-y-auto">
          {allHabitsCount === 0 ? (
@@ -169,7 +268,11 @@ const HabitGrid: React.FC<HabitGridProps> = ({
                    weekDays={weekDays}
                    completions={completions}
                    isCompleted={isCompleted}
-                   toggleCompletion={toggleCompletion}
+                   toggleCompletion={(id, date) => {
+                     toggleCompletion(id, date);
+                     if (isCompleted(id, date)) handleEvolutionTrigger(habit);
+                   }}
+                   onReflect={handleReflect}
                    openEditModal={openEditModal}
                    handleDeleteHabit={handleDeleteHabit}
                    moveHabit={moveHabit}

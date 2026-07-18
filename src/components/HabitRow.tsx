@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Check, Trash2, Clock, ArrowUp, ArrowDown, Timer, Lock, Target, Link2, Sparkles } from 'lucide-react';
+import { Check, Trash2, Clock, ArrowUp, ArrowDown, Timer, Lock, Target, Link2, Sparkles, Lightbulb } from 'lucide-react';
 import { Habit, SortMode, HabitFrequency } from '../types';
 import { formatTime, calculateMonthlyCompletion } from '../utils';
 import HabitTimer from './HabitTimer';
@@ -13,6 +13,7 @@ interface HabitRowProps {
   completions: Record<string, boolean | { completed: boolean; timestamp: string }>;
   isCompleted: (habitId: string, date: Date) => boolean;
   toggleCompletion: (habitId: string, date: Date) => void;
+  onReflect: (habit: Habit, date: Date) => void;
   openEditModal: (habit: Habit) => void;
   handleDeleteHabit: (id: string) => Promise<void>;
   moveHabit: (index: number, direction: 'up' | 'down') => void;
@@ -32,6 +33,7 @@ const HabitRow: React.FC<HabitRowProps> = ({
   completions,
   isCompleted,
   toggleCompletion,
+  onReflect,
   openEditModal,
   handleDeleteHabit,
   moveHabit,
@@ -201,7 +203,7 @@ const HabitRow: React.FC<HabitRowProps> = ({
                  <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gcal-blue/30" />
                )}
                {isScheduled ? (
-                 <label className={`cursor-pointer w-full h-full flex items-center justify-center transition-all duration-200 ${isLocked ? 'cursor-not-allowed group/locked' : 'hover:bg-gcal-muted/5 hover:scale-105'}`}>
+                 <label className={`cursor-pointer w-full h-full flex items-center justify-center relative transition-all duration-200 ${isLocked ? 'cursor-not-allowed group/locked' : 'hover:bg-gcal-muted/5 hover:scale-105'}`}>
                    <input 
                      type="checkbox" 
                      className="sr-only"
@@ -229,6 +231,22 @@ const HabitRow: React.FC<HabitRowProps> = ({
                        <Lock size={16} className="text-red-400/50" />
                      ) : null}
                    </div>
+
+                   {/* Reflection Trigger: Only show for missed scheduled habits */}
+                   {!completed && !isLocked && (
+                     <button 
+                       onClick={(e) => {
+                         e.preventDefault();
+                         e.stopPropagation();
+                         onReflect(habit, day);
+                       }}
+                       className="absolute top-1 right-1 p-1 rounded-full bg-gcal-bg-solid shadow-sm text-gcal-muted hover:text-amber-400 opacity-0 group-hover:opacity-100 transition-all duration-200 scale-75 hover:scale-100 z-20"
+                       title="Reflect on why this was missed"
+                     >
+                       <Lightbulb size={10} />
+                     </button>
+                   )}
+
                    {isLocked && (
                      <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[10px] px-2 py-1 rounded shadow-lg z-50 pointer-events-none whitespace-nowrap opacity-0 group-hover/locked:opacity-100 transition-opacity">
                        LOCKED: Complete "{dependencyHabit?.title}" first

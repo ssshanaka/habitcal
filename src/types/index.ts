@@ -35,6 +35,8 @@ export interface Habit {
   frequency: HabitFrequency;
   daysOfWeek?: number[]; // 0-6, for WEEKLY
   created_at?: string;
+  level?: number; // Habit evolution level
+  lastEvolutionDate?: string; // ISO date of last level up
 }
 
 
@@ -47,11 +49,22 @@ export interface HabitPackage {
   created_at?: string;
 }
 
-export interface Completion {
+export enum ReflectionReason {
+  WORK = 'Work Overload',
+  HEALTH = 'Health/Sick',
+  WEATHER = 'Weather',
+  MENTAL = 'Mental Block',
+  OTHER = 'Other'
+}
+
+export interface HabitReflection {
+  id?: string;
   habitId: string;
   date: string; // YYYY-MM-DD
-  completed: boolean;
-  timestamp?: string; // ISO string or HH:mm
+  reason: ReflectionReason;
+  note?: string;
+  user_id?: string;
+  created_at?: string;
 }
 
 export interface Circle {
