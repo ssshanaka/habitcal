@@ -2,55 +2,37 @@ import React from 'react';
 
 interface SparklineProps {
   habitId: string;
-  completions: Record<string, any>;
+  completions: Record<string, boolean | { completed: boolean; timestamp: string }>;
   isCompleted: (habitId: string, date: Date) => boolean;
   color: string;
 }
 
 const Sparkline: React.FC<SparklineProps> = ({ habitId, completions, isCompleted, color }) => {
-  const days = [];
-  const today = new Date();
-  
-  for (let i = 6; i >= 0; i--) {
+  const data = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
-    d.setDate(today.getDate() - i);
-    days.push(isCompleted(habitId, d));
-  }
+    d.setDate(d.getDate() - (6 - i));
+    return isCompleted(habitId, d);
+  });
 
   const width = 60;
-  const height = 20;
-  const padding = 2;
-  
-  const points = days.map((completed, i) => {
-    const x = (i * (width / (days.length - 1)));
-    const y = completed ? padding : height - padding;
-    return `${x},${y}`;
-  }).join(' ');
+  const height = 15;
+  const barWidth = 6;
+  const gap = 2;
 
   return (
-    <div className="flex items-center justify-center px-1">
-      <svg width={width} height={height} className="overflow-visible">
-        <polyline
-          fill="none"
-          stroke={color}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          points={points}
-          className="transition-all duration-500"
+    <svg width={width} height={height} className="overflow-visible">
+      {data.map((completed, i) => (
+        <rect
+          key={i}
+          x={i * (barWidth + gap)}
+          y={height - (completed ? height : 2)}
+          width={barWidth}
+          height={completed ? height : 2}
+          rx="1"
+          fill={completed ? color : '#e5e7eb'}
         />
-        {days.map((completed, i) => (
-          <circle
-            key={i}
-            cx={(i * (width / (days.length - 1)))}
-            cy={completed ? padding : height - padding}
-            r="1.5"
-            fill={completed ? color : 'var(--gcal-border)'}
-            className="transition-all duration-500"
-          />
-        ))}
-      </svg>
-    </div>
+      ))}
+    </svg>
   );
 };
 
